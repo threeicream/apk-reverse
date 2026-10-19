@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: sync-codeberg
@@ -22,6 +22,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 0
+          ssh-key: ${{ secrets.CODEBERG_SYNC_SSH_KEY }}
 
       - name: Merge Codeberg main
         shell: bash
@@ -30,5 +31,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch --no-tags https://codeberg.org/dabao1955/apk-reverse.git main
           git merge --no-edit FETCH_HEAD
-          # shortcut: upstream workflow edits may need manual sync; add workflow permission if required.
           git push origin HEAD:refs/heads/main
