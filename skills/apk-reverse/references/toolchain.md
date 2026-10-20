@@ -37,9 +37,37 @@ cross-check with the program headers.
 | **`ddc`** | `ddc app.apk -c <Class>` | **fastest read of dex as Java, plus query subcommands** — reach for this SECOND, to *read*. See below |
 | **`dexsql`** | `dexsql query --input app.apk --sql "…"` | **the whole dex as SQL tables** (callers, field accesses, numeric constants, debug lines, annotations) plus manifest and `resources.arsc` queries and an MCP server. Reach for it when the question is a **join or an aggregate** rather than a class list — see below |
 | `apktool` | `java -jar apktool.jar d/b` | whole-app decode including resources |
-| `jadx` | `jadx --no-res -d <out> <apk>` | readable Java for orientation; **not** a source of truth, and **not** a recon entry point (see below) |
+| `jadx` | `jadx --deobf -d <out> <apk>` | readable Java for orientation; **not** a source of truth, and **not** a recon entry point (see below) |
+| Fernflower / Vineflower | `java -jar vineflower.jar -dgs=1 -mpm=60 …` (via dex2jar) | the **second engine** for the classes jadx mangles — see below |
 | `aapt2` | `aapt2 dump badging <apk>` | manifest facts, package name, versions |
 | `zipalign`, `apksigner` | from build-tools | alignment and signing |
+
+### jadx and a second engine — the readable-Java tier (`unverified` unless stated)
+
+jadx stays what the table says: a viewer of located classes. Four flags change what you get,
+absorbed 2026-10-20 from `SimoneAvogadro/android-reverse-engineering-skill` (Apache-2.0):
+
+- **`--deobf`** renames obfuscated identifiers to *synthetic* readable ones and writes the mapping
+  to `<out>/deobf-mapping.txt`. It does **not** recover original names — for a Kotlin target the
+  original names live in annotations, and `references/kotlin-name-recovery.md` recovers them.
+- **`--deobf-map <mapping.txt>`** consumes a real ProGuard/R8 mapping — and an APK sometimes
+  **ships one** (search `assets/` and the dex strings for `mapping.txt`/`.map` before assuming
+  there is none). When a mapping exists this beats every heuristic.
+- **`--show-bad-code`** emits partially-decompiled bodies instead of error comments — useful
+  exactly where you need to see *something* of a class jadx struggles with.
+- **`-e` / `--export-gradle`** exports a Gradle project (IDE navigation); **per-dex targeting**
+  (`unzip` the APK, run jadx on one `classes*.dex`) keeps cost down on multi-dex giants.
+
+**Fernflower / Vineflower as the second engine.** Where jadx's output on a class is wrong or
+empty (complex lambdas, generics, streams — the shapes a Kotlin app is full of), the analytical
+decompiler often produces a readable body jadx cannot. It reads class files, not dex: the chain
+is `d2j-dex2jar -f -o app.jar app.apk` → `java -jar vineflower.jar -dgs=1 -mpm=60 -ren=1
+-e=$ANDROID_HOME/platforms/android-<N>/android.jar app.jar out/` → unzip the source jar. `-dgs=1`
+decompiles generic signatures, `-mpm=60` bounds each method (a decompiler hang becomes a skip),
+`-e=android.jar` gives it the framework types. **Run both engines and compare** when a class is
+load-bearing: two independent bodies agreeing is cheap corroboration a single body cannot give.
+All of this tier is `unverified` here — no APK was decompiled by this route in this repository —
+and it stays a *reading* route: the patch decision still belongs to the byte/smali tier above.
 
 ### rasc — the same index in Rust, when you have built it
 

@@ -55,7 +55,9 @@ import time
 try:
     import frida
 except ImportError:  # keep --help working on a machine without frida
-    frida = None
+    # Same measured asymmetry as check_repo.py's yaml: only ill-typed where frida is
+    # installed; unused-ignored on a bare machine (warn_unused_ignores is off).
+    frida = None  # type: ignore[assignment]
 
 DEFAULT_ADB = "adb"
 

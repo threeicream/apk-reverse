@@ -31,7 +31,11 @@ import sys
 try:
     import yaml
 except ImportError:   # the skills CLI is the real authority; this is a local gate
-    yaml = None
+    # `ignore[assignment]` because the sentinel assignment is only ill-typed where the
+    # module IS installed (mypy then knows the name as Module); on a bare machine the
+    # override in mypy.ini makes it Any and the ignore is unused -- warn_unused_ignores
+    # is off, so both environments stay clean.
+    yaml = None  # type: ignore[assignment]
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SKILLS_DIR = os.path.join(ROOT, 'skills')

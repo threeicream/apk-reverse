@@ -75,15 +75,16 @@ reference file is not named here, or when a script is not named here.
 | The trace segments themselves look corrupted — handler heads missing, tails glued into wrong segments | `references/native-vm-recovery.md` §7 Nested VMs — a flat segment accumulator discards the outer level; nested slices need a segment stack (`vm_handler_slice.py` flags the symptom) |
 | You need to know **where two runs of the same operation diverge** (password/license/key), not just what executed | `ete-diff-tracing.md` — ETE hardware-trace gates plus the differential method; `scripts/trace_diff.py` also diffs Stalker logs |
 | A generated KPM/LKM template is in front of you, or the kernel route feels like the plan | `kernel-event-injection.md` — the primitive map, the composition recipes, and the gates every kernel-side file must pass before it is a weapon |
-| The traffic is protobuf/gRPC/QUIC, or a proxy sees TLS but requests still fail on a Flutter app | `references/protocol-reverse.md` — schema-less protobuf, frame capture, and native-side pinning |
+| The traffic is protobuf/gRPC/QUIC, a proxy sees TLS but requests still fail on a Flutter app, **or the behaviour rides a long-lived WebSocket** | `references/protocol-reverse.md` — schema-less protobuf, frame capture, native-side pinning, and the long-connection state chain |
 | Userspace hooks land and the app still dies: the check reads `/proc/self/status` through a raw `svc`, or runs before `JNI_OnLoad` | `references/kernel-and-environment-hardening.md` — what the next layer up and down can actually do, and when to stop |
 | You must edit, repack, sign or inspect the APK **from the phone itself** | `references/on-device-tooling.md`, `scripts/mt_mcp_probe.py` |
 | A captured body decodes to nothing readable, or you cannot tell whether a length-delimited field is a string, a nested message or a packed array | `protocol-reverse.md`. Protobuf on the wire (measured) — run `scripts/protobuf_decode_raw.py`; the candidate list and its `tie:` lines are the answer |
 | Method bodies are present but decode as **private opcodes**, and you need the mapping rather than an explanation of why VMP is hard | `vmp-differential-analysis.md`, then `advanced-unpacking.md` for the shape diagnosis |
 | The value you need (sign, token, risk parameter) is computed in **JavaScript** — a WebView or embedded JS engine — by an entry call fed a huge hex/base64 opcode literal: a JS virtual machine | `jsvmp-recovery.md` — de-obfuscate and **call it** first, then the stack/register-VM procedures and the four JS traps; `emulation-and-rpc.md` owns the call-don't-read route |
+| You are reading a decompiled **Kotlin** app and every class name is a meaningless short token (`nq.e`, `C0123x`) | `kotlin-name-recovery.md` — the original FQNs survive R8 inside `@DebugMetadata`/`@Metadata`; `scripts/kotlin_name_recovery.py` rebuilds the mapping from any jadx export |
 | A store build arrives as `base.apk` + `split_config.*.apk`, or a rebuilt build is refused **as a set** although every file verifies on its own | `split-apk.md` — one keystore across every member for `pm install-multiple`, and check that a merge is legal before trusting a merged single APK |
 
-_55 row(s) below the header._
+_56 row(s) below the header._
 
 ## Reference index (no longer inline in `SKILL.md`)
 
@@ -97,7 +98,9 @@ _55 row(s) below the header._
 | `references/code-virtualization-and-custom-linkers.md` | **No packer, dex is readable, and a re-signed build still dies** — whole classes turned `native`, a private loader with a mismatched SONAME, a self-decrypting payload, a Java-layer "signature killer", and the keep-it/drop-it deadlock |
 | `references/java2c-and-jni-sinking.md` | **Whole classes are bare `native` declarations and you are about to hunt for a decrypted DEX** — Java2C has none, ever; the code is in a `.so`. Also the JNI boundary: why a `Java_*` symbol search fails silently |
 | `references/vmp-differential-analysis.md` | Method bodies are present but decode as **private opcodes** — a real Dex VMP: the known-plaintext differential, which links can and cannot be automated, how to *prove* a derived opcode table, smali generation, and when the route is closed |
-| `references/jsvmp-recovery.md` | The protected logic is **JavaScript** (WebView, embedded JS engine, mini-program): a jsvmp opcode literal plus an interpreter — recognition, the call-it-first route, stack- and register-VM reading, instruction extraction, the four JS-language traps, and the shipped loader decoder |
+| `references/jsvmp-recovery.md` | The protected logic is **JavaScript** (WebView, embedded JS engine, mini-program): a jsvmp opcode literal plus an interpreter — recognition and the wire-parameter family index, the call-it-first route with its A/B/C depth ladder, stack- and register-VM reading, instruction extraction, the four JS-language traps, and the shipped loader decoder |
+| `references/js-ast-deobfuscation.md` | The JS in front of you is unreadable through **structure** — string tables, decoder IIFEs, flattened control flow — and `jsvmp-recovery.md` §3's "AST pre-deobfuscation" step is next: family detection with `scripts/js_obf_detect.py`, the per-family pass order, safe-rewrite rules, minimal bootstrap eval, residue proof |
+| `references/kotlin-name-recovery.md` | You are reading a decompiled **Kotlin** app and the class names are meaningless short tokens: the original FQNs survive R8 inside `@DebugMetadata` and `@Metadata` — `scripts/kotlin_name_recovery.py` builds the obfuscated→original map from any jadx export, with `--grep` annotating every hit by its real class |
 | `references/framework-runtimes.md` | The UI is not native (Flutter / React Native / Unity / Cordova), or Java-layer hooks fire zero times while the UI clearly works |
 | `references/dart-aot.md` | The logic lives in a Dart AOT snapshot (`libapp.so`): pinning the Dart version, building a matching decompiler, the object pool and reference indexing, register/boolean conventions, locating and patching Dart code |
 | `references/native-and-so.md` | Patching in a `.so`, needing code to run before the app's own code, hand-built native payloads that crash inside the linker, or **deciding which library/ABI is actually loaded and executing** |
@@ -145,7 +148,7 @@ _55 row(s) below the header._
 | `references/on-device-tooling.md` | Working **from the phone itself**: MT Manager edit/repack/sign and its built-in APK MCP, LSPosed Manager, Termux+frida, and on-device data inspection |
 | `references/split-apk.md` | The target is a **split APK / App Bundle set** (`base.apk` + `split_config.*.apk`), or `pm path <PKG>` returned several files: reading a set, merge versus unified re-signing, and the install refusal each mistake produces |
 
-_44 row(s) below the header._
+_46 row(s) below the header._
 
 ## Script index (no longer inline in `SKILL.md`)
 
@@ -163,6 +166,7 @@ _44 row(s) below the header._
 | `scripts/dex_strpatch.py` | Byte-level string constant patch with **string_ids ordering guard** |
 | `scripts/dex_classdiff.py` | Compare two dex class tables (set + access flags) to prove a patch was surgical |
 | `scripts/dex_strings.py` | Dump/extract strings and endpoints from dex without a decompiler |
+| `scripts/kotlin_name_recovery.py` | Rebuild the **obfuscated→original Kotlin class-name map** from a jadx export: `@DebugMetadata`/`@Metadata.d2`/jadx rename comments, third-party trees skipped, `mapping.tsv`/`json`/`by_package/` outputs, then `-o`/`-p`/`--grep` query modes that annotate every grep hit with the real owning class; `--selftest` pins the three sources |
 | `scripts/dart_pprefs.py` | Build/query the object-pool offset -> code-site index for a Dart AOT snapshot (arithmetic decode; seconds, not minutes) |
 | `scripts/dart_pool_strings.py` | Recover string literals from a Dart AOT snapshot: framed entries, the one-byte vs UTF-16 split, file offsets, and a run-length noise filter |
 | `scripts/dart_disasm.py` | Annotated windowed disassembly of Dart AOT code (pool + boolean annotations) plus a B/BL caller index |
@@ -201,6 +205,7 @@ _44 row(s) below the header._
 | `scripts/protobuf_decode_raw.py` | **Schema-free protobuf decode**: hex / file / stdin to a JSON tree, every length-delimited field as a candidate set with ties labelled; `--reencode --check` for a byte-exact round trip |
 | `scripts/vmp_diff_harness.py` | Differential hardening for Dex-VMP: build a labelled opcode-coverage fixture (**218 of 224 opcodes, measured**), derive a candidate private-opcode map from an original/hardened dex pair, verify it in a closed loop, render smali |
 | `scripts/jsvmp_loader_decode.py` | Decode a **jsvmp** program literal (base64/hex → varint → ZigZag → signed opcode stream) with offsets, JSON output and a round-trip `--selftest`; raises on truncated input rather than decoding short |
+| `scripts/js_obf_detect.py` | **Score a JS bundle's obfuscation family** (hint tokens weight 10, content regexes weight 3: string-array lineage, control-flow flattening, jsvmp entry, opcode if-chains), get the per-family pass order for `js-ast-deobfuscation.md`, plus textual residue metrics for before/after comparisons; `--selftest` pins the fixtures |
 | `scripts/kernelsu_syscall_mask.py` | Generate a KernelSU/APatch syscall-masking scaffold: an installable userspace module plus KPM/LKM/eBPF kernel-side templates, each with its version gate and an explicit unverified label. **A userspace module cannot change a syscall return value** |
 | `scripts/hw_watch.py` | **Invisible memory watchpoints / execution breakpoints** on arm64: plan (WCR/BCR encoders with the 8-byte-window rules, host-tested), emit (self-contained on-device C helper, compiles clean as static aarch64), gates, run (build+push+stream hits), decode (module+offset per hit). ptrace route: `TracerPid` stays visible — the ledger is in the reference |
 | `scripts/trace_diff.py` | **Differential trace reduction**: reduce one trace to runs+histogram, or diff two traces into first-divergence / divergent regions / blocks-unique-to-each-side. Producer-agnostic (Stalker `BLK` logs or any address-per-line stream, incl. decoded cs_etm) |
@@ -215,4 +220,4 @@ _44 row(s) below the header._
 | `scripts/svc_scan.py` | Name the syscall behind an inline `svc` and the segment it sits in — which decides whether a libc-level hook can observe the call at all. `--context` shows neighbours, because a byte scan also matches data |
 | `scripts/anti_detect_probe.js` | Observer-only probe (patches nothing): path/loader/thread/kill hooks with **caller module + offset**, an environment self-report (`TracerPid`, frida-named mappings), and live streaming so a sub-second target still yields evidence |
 
-_54 row(s) below the header._
+_56 row(s) below the header._

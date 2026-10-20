@@ -305,7 +305,56 @@ therefore: identify the client first (`tls-and-cert.md` §Step 4 attribution), t
 mechanism. Patching a library that was never consulting the store is work with no effect; installing
 a system CA when a native verifier ignores it produces the same empty capture you started with.
 
-## 6. Failure modes
+## 6. WebSocket and long-lived connections — state chains, not packets
+
+**Load this when** the behaviour you care about rides one long connection instead of request/response
+pairs: a WebSocket (OkHttp `WebSocket`, `Java-WebSocket`, a native socket), SSE, or an app-held
+TCP/QUIC stream. The unit of analysis changes: a single captured frame says almost nothing, because
+its meaning is a function of the connection's accumulated state.
+
+**Claim strength.** `unverified` as a method — absorbed 2026-10-20 from `715494637/reverse-skill`
+(`jsr-reverse`'s long-connection reference; no license there, methodology only), where it was
+written for browser WebSocket targets; the Android capture points below are `inferred` from
+documented APIs, and nothing here was run on a real long-connection app in this repository.
+
+**Capture more than the first packet.** The expensive mistake is analysing one business frame with
+no idea which state produced it. Minimum evidence set, in order: **handshake** (and its response —
+it usually mints the session), **first business frame**, a **heartbeat/keepalive** pair, a
+**seq/ack** exchange, a **renewal/refresh** if tokens expire, and an **error/retry** frame if one
+exists. Each later frame family is only interpretable against that chain.
+
+**Record the connection as a state chain, not a frame list.** Write the dependencies down as a
+chain — handshake response grants session → heartbeat carries seq → ack confirms → token near
+expiry triggers renewal → renewal failure forces reconnect/risk state — because the question that
+actually decides replayability is *which prior state a frame consumes*. A frame that embeds the
+session id, a monotonic seq, and an ack of the previous server frame is **not replayable alone**;
+that is a finding about the protocol, not a failure of your capture.
+
+**Separate message families before naming anything.** Handshake/auth · heartbeat/keepalive ·
+business · ack/retry/error · renewal. Only the business family is your target; the others are the
+state machinery you must reproduce to *reach* the business family. Mislabelling a heartbeat as a
+protocol error is the standard first misread.
+
+**Split the envelope from the payload — envelope first.** Long-connection payloads are usually
+framed: message **type**, **length**, **seq**, **time window**, session identifier, and
+compression/encryption flags wrap the body. Recover that contract before touching body semantics
+(and the body itself is very often a protobuf message — §1's decoder and the round-trip check apply
+unchanged). A body read against a wrong envelope alignment produces plausible garbage, the same
+failure as §7's wrong frame split.
+
+**Android capture points** (`inferred`): an OkHttp `WebSocket` surfaces through its listener and
+`okhttp3.internal.ws` — hookable from Java (`dynamic-frida.md`); a native or engine-internal socket
+(QUIC, a game/push SDK) may never transit Java at all, and the §5 attribution rules apply — check
+what is mapped (`scripts/lib_map.py`) before assuming you missed a hook. Note the transport itself
+can be pinned exactly like §5's native verifier, and `tls-and-cert.md` still owns the trust-chain
+attribution.
+
+**Stop rule.** Stop when you can name the state chain, the message families, and the target
+frame's dependency set, and the envelope decodes stably across several samples. If the real blocker
+is still "which state did this frame consume", no amount of body decoding helps — go capture the
+missing family first.
+
+## 7. Failure modes
 
 **A decode that looks valid but is not.** protobuf is self-synchronising enough that random bytes
 often decode into a plausible-looking field list. Guard against it by (a) decoding several samples of

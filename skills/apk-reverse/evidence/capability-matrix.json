@@ -847,6 +847,53 @@
         "three public write-ups of one reverse-engineering series, 2024-03..2024-09 (titles and authors anonymized; the absorbed record is the reference file itself)"
       ],
       "limits": "The recovery procedures (recognition signals, the call-it-first route, stack- and register-machine reading, AST instruction extraction with register/immediate typing, the four JS-language evaluation traps, constant folding and control-flow recovery) are absorbed from three public write-ups and never executed by this repository on any real target -- all inferred. The shipped loader decoder is host-measured only against its own round trip (2,016 values exact, known varint/ZigZag byte layouts pinned, truncation raises) and decodes the write-up's own sample literal end to end; that is corroboration of the chain's shape, not a measurement on an independent target. Engine-specific delivery (WebView, QuickJS/JSC behind JNI, mini-program containers) was never exercised."
+    },
+    {
+      "capability": "js-ast-pre-deobfuscation",
+      "group": "unpacking",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "observed",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/js-ast-deobfuscation.md",
+        "scripts/js_obf_detect.py"
+      ],
+      "evidence_not_shipped": [
+        "lwjjike/xbsReverseSkill (MIT), ast-deobfuscation skill: pipeline-config.js, safe-rewrite-rules.md, string-array-and-minimal-eval.md, control-flow-and-opcode-patterns.md, pattern-layering.md -- architecture and rules absorbed 2026-10-20, no code copied"
+      ],
+      "limits": "The detection layer is observed against its own embedded fixtures only (four family fixtures, the hint-beats-content scoring rule, plain-code-is-generic, residue metric filter) -- no real obfuscated bundle was ever classified here. The rewriting passes (string-array restore, dispatcher inlining, array-CFF flattening, if-chain-to-switch, identifier renaming) need node plus @babel/parser/traverse/generator, which this skill does not ship; every rewrite is a documented route, unverified end to end. Residue metrics are textual proxies, valid for same-file before/after comparison only. The per-family pass-order caveat carried from the absorbed architecture (VM-heavy families skip late literal-inlining because it stalls large samples) is the upstream's measurement, not this repository's."
+    },
+    {
+      "capability": "kotlin-name-recovery",
+      "group": "dex",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "observed",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/kotlin-name-recovery.md",
+        "scripts/kotlin_name_recovery.py"
+      ],
+      "evidence_not_shipped": [
+        "SimoneAvogadro/android-reverse-engineering-skill (Apache-2.0): recover-kotlin-names.sh and references/kotlin-name-recovery.md -- re-implemented 2026-10-20 as dependency-free Python"
+      ],
+      "limits": "Parsing of all three recovery sources (@DebugMetadata c=, @Metadata d2 first non-stdlib descriptor, jadx 'renamed from' comments), the third-party skip list and the map-file round trip are observed on embedded fixtures only. The upstream recovery-rate claims (30-50% of classes overall, ~100% of *Repository/*ViewModel/*Impl, ~80% of data-class DTOs) are unverified here: no real obfuscated Kotlin app was run through the script. Method and field names are never recovered; heavily inlined shapes can surface under a wrong primary class, so every mapping row is a hint. The script reads decompiled sources, not the dex: a decompiler that drops annotations removes the source entirely."
+    },
+    {
+      "capability": "websocket-long-connection-analysis",
+      "group": "protocol",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "unverified",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/protocol-reverse.md"
+      ],
+      "evidence_not_shipped": [
+        "715494637/reverse-skill (no license file): jsr-reverse/references/protocol-and-long-connection.md -- methodology only absorbed 2026-10-20, no text copied"
+      ],
+      "limits": "The state-chain method (capture handshake, first business frame, heartbeat/ack, renewal, error; record the connection as a dependency chain; separate message families; split envelope from payload before body semantics) is absorbed from a browser-WebSocket reference and was never run on an Android long-connection target here. The Android capture points in the section (OkHttp WebSocket listener surfacing, native/QUIC transports never transiting Java) are inferred from documented APIs, not measured. Frame bodies that are protobuf do inherit the measured schema-free decoder from protocol-reverse.md section 1; that is the only measured part of the route."
     }
   ]
 }

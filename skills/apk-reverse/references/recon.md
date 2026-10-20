@@ -197,9 +197,10 @@ Collect: base URLs, DoH/DoT lookups, path constants, CDN hosts, custom headers.
 
 Treat **unique** strings as navigation aids — they can often be searched byte-wise in the dex to find the owning class (see `references/dex-patching.md` §finding-the-call-site).
 
-Two patterns worth recognizing early:
+Three patterns worth recognizing early:
 - **Dynamic gateway**: the real API host is fetched at runtime (e.g. via a DNS TXT record over DoH). The hardcoded host in dex may be only a fallback. This affects server-side analysis, not patching.
 - **Minimal headers / no request signing**: if auth is just `Authorization: Bearer` plus a static app-name header, then a repackaged client is not distinguishable to the server by request signature — which matters for `references/server-api.md`.
+- **BuildConfig sweep** (absorbed 2026-10-20 from `SimoneAvogadro/android-reverse-engineering-skill`, Apache-2.0; the habit is `inferred`, its yield unmeasured here): every Gradle module compiles one generated `BuildConfig` class, and they are a cheap first source of `BASE_URL`/`ENDPOINT` constants, API keys, flavor flags and debug switches — one `--find 'BuildConfig|BASE_URL|FLAVOR'` pass over the string dump. Generated constants are inlined at their use sites even when the class itself is renamed, so the *values* surface in `--urls` output regardless; the sweep is what attributes them to a module.
 
 ## Recon output
 

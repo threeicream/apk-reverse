@@ -49,6 +49,9 @@ route was not measured on this repository's evidence**. Treat them as leads with
 | Interpreter-trace de-virtualization | handler slicing + guest-opcode trajectory, calibrated on an open IR-VM's source — `vm_handler_slice.py` |
 | Native VM recovery procedure | the absorbed method end to end: dispatcher separation, register anchoring, nested stacks, operand slicing, re-VM validation — `native-vm-recovery.md` |
 | JS VMP (jsvmp) recovery | recognition, call-it-first, stack/register-VM reading, instruction extraction, the four JS traps — procedures absorbed, only the loader decoder shipped and round-trip-tested — `jsvmp-recovery.md` |
+| JS AST pre-deobfuscation | family detection + per-family pass order + safe-rewrite rules; detector shipped and fixture-tested, rewriting needs node+babel (not shipped) — `js-ast-deobfuscation.md`, `js_obf_detect.py` |
+| Kotlin original-name recovery | obfuscated→original class map from `@DebugMetadata`/`@Metadata` in any jadx export; parsing fixture-tested, recovery rates upstream-claimed — `kotlin-name-recovery.md`, `kotlin_name_recovery.py` |
+| Long-connection (WebSocket) analysis | state chains, message families, envelope/payload split — absorbed methodology, never run on an Android target here — `protocol-reverse.md` |
 | Kernel-side event injection | watchpoints and register rewrites from a driver, as gated templates — `kernel-event-injection.md` |
 | Working from the phone itself | MT Manager edit/repack/sign and its APK MCP, LSPosed Manager, Termux — `on-device-tooling.md` |
 | Publishing without publishing the target | the leak scanner, the do-not-anonymize list, and the graded precedent library — `desensitization-and-leak-scans.md`, `scripts/scan_leaks.py`, `precedents/` |

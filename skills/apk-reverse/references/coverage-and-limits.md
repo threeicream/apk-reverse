@@ -141,10 +141,31 @@ its own strength note at the top.
 - **JS VMP (jsvmp) recovery** — reading logic protected as a private JS opcode stream: recognition
   signals, the call-it-first route (AST restore + environment fill), stack- and register-machine
   reading procedures, AST instruction extraction with register/immediate typing, the four
-  JS-language traps, and constant-folding/control-flow recovery. Absorbed from three public
+  JS-language traps, and constant-folding/control-flow recovery; the A/B/C depth ladder and the
+  wire-parameter family index are later additions from a fourth public source (provenance in the
+  file). Absorbed from three public
   write-ups; every procedure `inferred`, none run on a real target. The one shipped piece is the
   loader decoder (base64 → varint → ZigZag), host-measured against its own round trip plus the
   write-up's sample literal (`jsvmp-recovery.md`, `scripts/jsvmp_loader_decode.py`).
+- **JS AST pre-deobfuscation (detection + pass order)** — the pipeline layer `jsvmp-recovery.md`
+  names as its step 1: weighted family detection and per-family pass ordering, safe-rewrite rules,
+  minimal bootstrap eval, residue metrics. Absorbed 2026-10-20 from a public MIT-licensed skill
+  (`lwjjike/xbsReverseSkill`); the rewriting passes need node+babel, which this skill does not
+  ship, so the end-to-end route is `unverified`. The shipped detector is `observed` against its
+  own embedded fixtures only (`js-ast-deobfuscation.md`, `scripts/js_obf_detect.py`).
+- **Kotlin original-name recovery** — the mapping R8 cannot strip: `@DebugMetadata`/`@Metadata.d2`
+  carry original class FQNs into any decompiled export, and the shipped script rebuilds the
+  obfuscated→original map plus `--grep` annotation. Absorbed 2026-10-20 from a public
+  Apache-2.0-licensed skill (`SimoneAvogadro/android-reverse-engineering-skill`); parsing is
+  `observed` against embedded fixtures, the upstream recovery-rate claims are `unverified`, and
+  no real obfuscated app was run through it here (`kotlin-name-recovery.md`,
+  `scripts/kotlin_name_recovery.py`).
+- **Long-connection (WebSocket) state-chain analysis** — capture beyond the first frame,
+  connection state chains, message-family separation, envelope/payload split. Absorbed
+  2026-10-20 from a public unlicensed JS-reverse skill's reference (methodology only); written
+  for browser targets and never run on an Android long-connection app here — `unverified`
+  end to end, with Android capture points `inferred` from documented APIs
+  (`protocol-reverse.md` §6).
 - **Kernel-side event injection** — invisible watchpoints and register rewrites from a driver, as
   generated templates with their gates; nothing kernel-side was ever compiled or loaded here
   (`kernel-event-injection.md`, `scripts/kernel_instrument_scaffold.py`).
@@ -152,6 +173,10 @@ its own strength note at the top.
   data inspection (`on-device-tooling.md`, `scripts/mt_mcp_probe.py`).
 
 ## Dependencies this skill does not ship — name them before the workflow starts
+
+- **JS AST rewriting needs node + babel** (`@babel/parser`/`traverse`/`generator`) — the detector
+  and the pass order ship; the rewriting engine does not, and every rewrite pass is a documented
+  route until that stack is installed (`js-ast-deobfuscation.md`).
 
 - **Dart AOT analysis needs a snapshot dump.** `dart-aot.md`'s workflow begins at `pp.txt`;
   producing it requires a snapshot container resolver this skill does not contain and cannot

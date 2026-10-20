@@ -7,9 +7,11 @@ receives a **giant literal** — thousands of hex characters or a base64 blob �
 globals, and everything behind it is one closed interpreter. That shape is **jsvmp**: the original
 logic compiled to a private opcode stream and executed by a virtual machine shipped with the script.
 This file owns reading it. The neighbouring layers own the rest: `references/emulation-and-rpc.md`
-owns **calling** the routine instead of reading it, `references/vmp-differential-analysis.md` the
-dex-layer VMP, `references/native-vm-recovery.md` the native interpreter loop, and
-`references/framework-runtimes.md` deciding that the logic lives in JS at all.
+owns **calling** the routine instead of reading it, `references/js-ast-deobfuscation.md` owns the
+**pre-deobfuscation pipeline** (detection, pass order, safe-rewrite rules — the step §3.1 names),
+`references/vmp-differential-analysis.md` the dex-layer VMP, `references/native-vm-recovery.md` the
+native interpreter loop, and `references/framework-runtimes.md` deciding that the logic lives in JS
+at all.
 
 **Claim strength.** Absorbed from three public write-ups of one reverse-engineering series
 (2024-03..2024-09; titles and authors anonymized in this record). One builds a minimal JS VM to
@@ -57,6 +59,39 @@ Two cautions. A big `switch` alone proves nothing (a state machine looks the sam
 **read a cursor from a data buffer, dispatch on the value, and write the cursor back**. And the
 presence of a readable interpreter does not mean you must read it — §3 first.
 
+**A parameter-name index for the families this repository has on record** (`unverified` —
+absorbed 2026-10-20 from a public JS-reverse case corpus; wire-level parameter names are kept as
+the recognition signal, vendors anonymised per this repository's desensitization convention; none
+of these was met on a real target here). Recognition aid only — confirm by §2's structural signals
+before routing on it:
+
+| Wire parameter / marker | Family shape | Typical carrier |
+|---|---|---|
+| `a_bogus`, `X-Bogus` | layered sign params, heavy env probing | short-video platforms, web + app |
+| `mtgsig` | mini-program VMP with native assist | delivery/local-services apps |
+| `sensor_data` | device-fingerprint collection + packing | risk-control SDKs (app-embedded) |
+| `blackbox` | fingerprint blob, env-sensitivity | risk-control SDKs (app-embedded) |
+| `h5st` | staged params with time windows | large e-commerce clients |
+| `x-s`, `x-t` pair | jsvmp-generated sign pair | lifestyle-community platforms |
+| `__zse_ck` | JS + wasm nested obfuscation | Q&A communities |
+| `acw_sc__v2` | JS-computed cookie on first visit | e-commerce/ACW-fronted sites |
+| `F14B3CEF*`-prefixed cookies, `$_ts` | 4/5/6-generation dynamic JS ("RS") | ticketing/airline/gov sites in WebView |
+| `armorToken`, `Anti-in` | request-header token pair | fashion e-commerce |
+| `aws-waf-token` | JS challenge token | AWS-WAF-fronted endpoints |
+| `Reese84`, `___utmvc` | obfuscator.io-lineage challenge | airline/CDN-fronted sites |
+| `hexin-v` | sign with heavy obfuscation | stock-data platforms |
+| `ssxmod_itna` | multi-cookie interdependent chain | travel/booking sites |
+
+A hit in this table says "expect a known shape, budget accordingly" — it does **not** say the
+algorithm is known, and it never overrides a structural check. Two or three of these families show
+up inside APKs as embedded WebView/H5 risk pages and mini-program containers rather than as the
+app's own code — which is exactly why they surface here and not in `detection-and-anti-analysis.md`.
+
+**Provenance note.** The A/B/C ladder at the end of §3 and this table are the only parts of this
+file absorbed from outside the three write-ups the rest cites: both come from
+`715494637/reverse-skill` (`jsr-reverse` skill; the repository ships no license, so methodology
+only was absorbed, no text), retrieved 2026-10-20.
+
 ## 3. The cheaper question first: restore, fill the environment, call it
 
 The stack-machine write-up's outcome, in its own order, and the step most skip:
@@ -65,7 +100,9 @@ The stack-machine write-up's outcome, in its own order, and the step most skip:
    propagation. This halved the sample (~9,600 lines → roughly half) and made every later step
    debuggable in an IDE instead of a browser's obfuscated view (the same function was 3,000+
    unreadable lines in devtools). Debugging un-restored code in the browser is the slow path; do
-   not attempt VM analysis inside it.
+   not attempt VM analysis inside it. **Run as a pipeline, not ad hoc:**
+   `references/js-ast-deobfuscation.md` owns the family detection, pass order and safe-rewrite
+   rules, and `scripts/js_obf_detect.py` scores the sample.
 2. **Fill the environment** ("补环境"): give the script the `window`/`document`/`navigator`/canvas
    surface it probes. Canvas fingerprints are **hardware-linked** — vendors have collected real
    device fingerprints to reject forged ones; a random canvas value may still be accepted (the
@@ -78,6 +115,28 @@ This is `references/emulation-and-rpc.md`'s call-don't-read route, and it is the
 deliverable: a harness that runs the guest in your controlled environment. Read the VM only when
 you must understand or alter the algorithm itself, or when the environment the VM demands is more
 expensive to fake than the VM is to read.
+
+### How deep to go — the A/B/C ladder (absorbed; `inferred`)
+
+"Call it first" is level **A**, and most tasks never leave it. The ladder below makes the upgrade
+a *decision with evidence*, not a mood — its shapes come from a public JS-reverse recovery-strategy
+note (see provenance above), and they match what the three write-ups actually did:
+
+| Level | What you recover | You are here when… | You leave when… |
+|---|---|---|---|
+| **A — call the guest, extract only the opcodes that touch the target field** | the harness + a handful of critical-opcode semantics | the write-back boundary is known and a few opcodes explain the field | — (the deliverable is the harness) |
+| **B — recover the dispatcher plus the critical state carriers** | the dispatcher loop, register/stack/context carriers, opcode families with state flow | a critical opcode cannot be interpreted without dispatcher semantics; the field explanation depends on register/stack flow; key branches cannot be judged without the carriers | never jump here because the code is *ugly* — ugliness is not an evidence type |
+| **C — minimal decompilation / minimal re-interpreter** | a smallest verifiable re-execution of the needed path | multiple paths must be re-played, or batch/protocol rebuild requires an executable fragment, and A+B demonstrably cannot support it | — |
+
+**Hard rules.** Start at A; never jump to C for aesthetics. A→B requires a *proven* dispatcher or
+state-carrier dependency, not a suspicion. B→C requires a named downstream need (replay, batch,
+protocol rebuild) — "the write-up rebuilt the whole ISA" is not that need until your task has one.
+And the **black-box reuse boundary** decides whether reading is needed at all: reuse the module
+whole when its input/output boundaries are known and the difficulty is the container or bridge
+rather than the operator; recover deeper when the module rides heavy implicit shared state, replays
+are unstable without the state carrier, or the module is *itself* another jsvmp. Write the decision
+down in four lines — reuse mode / known inputs / known outputs / still-dependent state carriers —
+so "we stopped at A" reads as a conclusion rather than a shortcut.
 
 ## 4. Locating the interpreter and clearing the porch
 
@@ -238,6 +297,7 @@ integers → ~14,000 instructions, with constants visible as bulk stores into fi
 | Need | Tool / file |
 |---|---|
 | decode a jsvmp program literal (base64 → varint → ZigZag) | `scripts/jsvmp_loader_decode.py` (`--selftest` proves the round trip) |
+| classify an obfuscated JS sample and get its pass order | `scripts/js_obf_detect.py`, then `references/js-ast-deobfuscation.md` |
 | decide the logic lives in JS at all | `references/framework-runtimes.md` (runtime table; zero-hit Java hooks) |
 | call the routine instead of reading it (the §3 route) | `references/emulation-and-rpc.md`; Frida RPC over a WebView/engine boundary |
 | reach a JS engine behind JNI from the device | `references/dynamic-frida.md`; the JS bridge inputs are in `references/system-ipc-audit.md` |
@@ -252,6 +312,7 @@ the G1 sentence accordingly before sinking days into the ISA.
 
 - [ ] entry recognised by the literal + dependency-array shape, not by a big `switch` alone
 - [ ] §3 executed in order — AST restore, environment fill, call the function — before any VM reading
+- [ ] the A/B/C stop depth stated with its evidence (which field-explanation or replay need forced the level) and the reuse boundary written down
 - [ ] environment patches labelled: each one can fail server-side later (canvas especially)
 - [ ] guard closures simplified with reference-checked replacements; "dead" branches probed, not cut
 - [ ] stack vs register decided by the state idiom (§2 table), then the naming map applied
