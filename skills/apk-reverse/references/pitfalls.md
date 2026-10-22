@@ -1437,3 +1437,37 @@ is recorded. Two traps recur: regex metacharacters that are legal characters in 
 descriptors, `[` in array types, `.` in package names), and representation mismatches that hide
 behind a matching line count. The encoding cousins of this failure are in `framework-runtimes.md`
 and the line-ending trap in `patch-audit.md`.
+
+## P48. Every breakpoint in the target `.so` refuses to bind, and the app is running fine
+
+**Symptom**
+A debugger attaches to the process, the process keeps running normally, the feature implemented by
+the library works — and the library is not in the module list. Breakpoints set in it are refused, or
+are accepted and never hit. There is no error, no log line, and no crash, so the first hypothesis is
+an anti-debug check, then "the library is packed", and the session is spent on both.
+
+**Root cause**
+`android:extractNativeLibs="false"` — the default for modern packages — leaves the `.so` inside
+`base.apk`, and the loader maps it from there. There is no
+`/data/app/<pkg>-<hash>/lib/<abi>/libtarget.so` on disk, and a debugger binds breakpoints to a
+module *file*. The library is present in memory and absent from the filesystem, which is a
+contradiction only if you assume those are the same thing. `pm path <pkg>` names the APK's directory,
+and `ls` beside it finds no `lib/` at all; the mapped region is backed by the APK, the same shape as an
+`r--s` mapping of `base.apk` that looks like a dex (`advanced-unpacking.md`).
+
+**Why it is hard to see**
+Everything that would normally discriminate a setup fault from a target fault reports success.
+Attach works, the process is alive, PID and ABI match, the server logged nothing. The one fact that
+explains it — the missing file — is a *negative* the tool never prints: a debugger lists the modules
+it can see, not the modules it cannot. And the target's own behaviour is the strongest false signal
+available: the feature works, so the library is obviously loaded, so the debugger must be blocked.
+
+**The rule**
+**When a breakpoint will not bind and the module list is short, look for the file before you look for
+a check.** `adb shell pm path <pkg>` and `ls` the sibling `lib/<abi>/`; if it is absent, this is
+`extractNativeLibs`, not anti-debug. Fix it by repacking with the flag at `true` (and then handle the
+signature consequences — `signature-derived-keys.md`), or by giving the loader an on-disk copy in
+`lib/<abi>/` on a rooted device and verifying that the app loads it. Never point the debugger at the
+`.so` extracted from the APK and call it the module: those addresses belong to a copy the process
+never mapped, so a breakpoint that does land is worse than one that does not. The full attach sequence
+is in `ida-so-debugging.md`.

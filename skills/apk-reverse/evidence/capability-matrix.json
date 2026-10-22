@@ -657,7 +657,7 @@
       "limits": "The offline candidate path from an APK and the authoritative live read are both documented in the reference; neither has a public-target measurement here. The failure shape is a rebuilt APK that installs, launches, and then fails every signed request, which is easy to report as a server problem and is not one."
     },
     {
-      "capability": "blocked-unity-il2cpp-react-native-ios",
+      "capability": "blocked-react-native-ios",
       "group": "boundary",
       "status": "blocked",
       "route_measured": false,
@@ -670,7 +670,38 @@
       "evidence_not_shipped": [
         "docs/tool-verification/README.md (repository root, not shipped)"
       ],
-      "limits": "Unity / IL2CPP logic recovery, React Native / Hermes bytecode and Cordova internals, and every iOS or .ipa workflow are outside this skill. references/framework-runtimes.md identifies the runtime and establishes that the dex is not the battlefield; there is no verified recipe here for locating a method inside libil2cpp.so plus global-metadata.dat. Say so instead of improvising."
+      "limits": "React Native / Hermes bytecode and Cordova internals, and every iOS or .ipa workflow, are outside this skill. references/framework-runtimes.md identifies the runtime and establishes that the dex is not the battlefield; it carries no Hermes-bytecode recipe and no iOS tooling. Say so instead of improvising. Unity is no longer in this row: its documented route is the unity-il2cpp-logic-recovery row, which is a route and not a measurement."
+    },
+    {
+      "capability": "unity-il2cpp-logic-recovery",
+      "group": "runtime",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "unverified",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/unity-runtime.md",
+        "references/framework-runtimes.md"
+      ],
+      "evidence_not_shipped": [
+        "ref/unity1.md, ref/unity2.md, ref/unity3.md -- public Unity reverse-engineering write-ups (2026-02, 2026-06), methodology absorbed, no text copied"
+      ],
+      "limits": "Absorbed, never run here: no Unity package was dumped and no patched Mono runtime was built in this record. What is documented: Mono versus IL2CPP identification by shipped files, Il2CppDumper over libil2cpp.so + global-metadata.dat with the metadata magic (0xFAB11BAF) as the encryption check, the four-step IDA import order (ida_py3.py, script.json, stringliteral.json, ida_with_struct_py3.py), a frida-il2cpp-bridge lookup for a run-time or encrypted case, and the dnSpy-Unity-mono patch set that makes a retail Mono player accept a debugger. Unverified details: the exact dnSpy patch hunks, the Android libmono.so equivalent (inferred from a desktop-only source), whether the loader prefers an on-disk .so on a hardened build, and every tool's behaviour on a stripped or protected package. No opcode or offset claim is made here."
+    },
+    {
+      "capability": "native-so-remote-debugger-attach",
+      "group": "native",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "unverified",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/ida-so-debugging.md"
+      ],
+      "evidence_not_shipped": [
+        "ref/idaso1.md, ref/idaso2.md -- public IDA-on-Android walkthroughs (2024-07), commands absorbed, no text copied"
+      ],
+      "limits": "This is a documented route, not a measured one: no debugger was attached in this record and neither source targeted a hardened app. The mechanics covered are the two manifest preconditions, matching dbgsrv to the loaded ABI, running the server as uid 0 (else the attach list hides the target), am start -D plus the JDWP forward and jdb connect that actually releases the suspended process, and the extractNativeLibs=false failure in which the library is mapped from base.apk so no breakpoint can bind. Unverified: dbgsrv filenames per IDA release, chmod mode, menu labels across versions, and whether pushing an on-disk .so overrides the in-APK copy on a protected build. The route cannot hide TracerPid, the server binary on disk, or software breakpoints in mapped pages."
     },
     {
       "capability": "blocked-server-side-authority",

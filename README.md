@@ -193,6 +193,13 @@ references/               loaded on demand, one topic each
                               Begins with the snapshot-decoding front end it depends on (aotopsy or
                               blutter) because the pool listing is an input, not something this skill
                               produces itself
+  unity-runtime.md            Unity from the two files that decide everything: Mono
+                              (`Assembly-CSharp.dll`) versus IL2CPP (`libil2cpp.so` plus
+                              `global-metadata.dat`), dumping the pair with Il2CppDumper and
+                              importing the tables into IDA in the order that works, the
+                              dnSpy-Unity-mono patch that makes a retail Mono player accept a
+                              debugger, a run-time class lookup over frida-il2cpp-bridge, and
+                              the audit probes when the deliverable is a report
   native-and-so.md            .so hosts, DT_NEEDED vs JNI_OnLoad, relocation limits,
                               relocation-free bootstrapping, replacing Java methods natively,
                               and which ABI/library is *actually loaded and executing*
@@ -200,6 +207,10 @@ references/               loaded on demand, one topic each
                               mechanisms, how to tell which one actually fires, how to find the
                               site, forged section headers, function boundaries from
                               PT_GNU_EH_FRAME, scanner traps, and neutralising safely
+  ida-so-debugging.md         attaching a real debugger instead of hooking: IDA's `dbgsrv` with
+                              the ABI match, `am start -D` plus the JDWP handshake that actually
+                              releases the process, and the `extractNativeLibs="false"` failure
+                              where the library is mapped from `base.apk` and no breakpoint binds
   detection-and-anti-analysis.md  when the app fights back or the tool cannot run here: telling
                               detection apart from a broken environment, deciding by cost instead
                               of escalating, recognising an environment where dynamic analysis
@@ -591,10 +602,11 @@ whose measurements disagreed with them. A **hardware pass** then added the layer
 software tooling: **hardware watchpoints** with their honest `TracerPid` ledger, **ETE/TRBE
 differential tracing** with its five gates, and **kernel-side injection templates** — every
 host-checkable piece measured, every device-bound piece labelled `unverified` until a gate
-opens. Unity/IL2CPP logic recovery,
-React Native/Hermes bytecode internals, and defeating a server-side authority are **not**
-covered, and the skill is written to say so and stop rather than apply the nearest
-documented procedure to a target it was not written for.
+opens. Unity/IL2CPP logic recovery and
+attaching a real debugger to a `.so` are **documented routes, not measurements** — absorbed from
+public write-ups and labelled `unverified` throughout. React Native/Hermes bytecode internals and
+defeating a server-side authority are **not** covered, and the skill is written to say so and stop
+rather than apply the nearest documented procedure to a target it was not written for.
 
 Four qualifications that the Coverage section states in full and that belong here too:
 

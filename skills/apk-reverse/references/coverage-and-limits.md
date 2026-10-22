@@ -166,6 +166,17 @@ its own strength note at the top.
   for browser targets and never run on an Android long-connection app here — `unverified`
   end to end, with Android capture points `inferred` from documented APIs
   (`protocol-reverse.md` §6).
+- **Unity logic recovery (Mono and IL2CPP)** — telling the backends apart by what they ship,
+  dumping `libil2cpp.so` + `global-metadata.dat` with Il2CppDumper, the metadata magic that decides
+  whether the dump is even possible, the four-step IDA import order, a run-time class/method lookup
+  over frida-il2cpp-bridge, and the dnSpy-Unity-mono patch that makes a retail Mono player accept a
+  debugger. Absorbed from three public write-ups; no package was dumped here and no patched runtime
+  was built, so every step is `unverified` (`unity-runtime.md`).
+- **Attaching IDA's remote debug server to a `.so`** — ABI-matched `dbgsrv`, the root server, the
+  wait-for-debugger start plus the JDWP handshake that releases the process, and the
+  `extractNativeLibs="false"` failure where the library is mapped from `base.apk` and no breakpoint
+  can bind. Absorbed from two walkthroughs; never run here, and neither source targeted a hardened
+  app (`ida-so-debugging.md`).
 - **Kernel-side event injection** — invisible watchpoints and register rewrites from a driver, as
   generated templates with their gates; nothing kernel-side was ever compiled or loaded here
   (`kernel-event-injection.md`, `scripts/kernel_instrument_scaffold.py`).
@@ -189,10 +200,12 @@ its own strength note at the top.
 
 ## Not covered — say so rather than improvise
 
-- **Unity / IL2CPP logic recovery.** `framework-runtimes.md` identifies the runtime and establishes
-  that the dex is not the battlefield; it does not carry the IL2CPP equivalent of `dart-aot.md`.
-  There is no verified recipe here for locating a method inside `libil2cpp.so` plus
-  `global-metadata.dat`.
+- **A *verified* Unity / IL2CPP route.** `unity-runtime.md` carries the documented route —
+  backend identification, Il2CppDumper, the IDA import order, the Frida bridge, the dnSpy-Unity-mono
+  patch — but nothing in it was run in this record, and it is not the IL2CPP equivalent of
+  `dart-aot.md`: there is no byte-level reading of generated native code here, no opcode map, and no
+  measurement on a stripped or protected package. Do not present a dump as proof that a method was
+  located.
 - **React Native / Hermes bytecode** and Cordova/hybrid internals, beyond runtime identification and
   the generic "find the string, then find what references it" approach. One carve-out: if the JS
   layer's problem is **VMP-protected JavaScript** (a jsvmp opcode literal plus interpreter), that is

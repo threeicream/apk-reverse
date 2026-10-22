@@ -52,6 +52,8 @@ route was not measured on this repository's evidence**. Treat them as leads with
 | JS AST pre-deobfuscation | family detection + per-family pass order + safe-rewrite rules; detector shipped and fixture-tested, rewriting needs node+babel (not shipped) — `js-ast-deobfuscation.md`, `js_obf_detect.py` |
 | Kotlin original-name recovery | obfuscated→original class map from `@DebugMetadata`/`@Metadata` in any jadx export; parsing fixture-tested, recovery rates upstream-claimed — `kotlin-name-recovery.md`, `kotlin_name_recovery.py` |
 | Long-connection (WebSocket) analysis | state chains, message families, envelope/payload split — absorbed methodology, never run on an Android target here — `protocol-reverse.md` |
+| Unity (Mono and IL2CPP) | backend identification, Il2CppDumper over `libil2cpp.so` + `global-metadata.dat`, the IDA import order, a run-time lookup over frida-il2cpp-bridge, the dnSpy-Unity-mono patch — absorbed, nothing run here — `unity-runtime.md` |
+| Attaching a real debugger to a `.so` | IDA `dbgsrv` with the ABI match, wait-for-debugger plus the JDWP handshake, and the `extractNativeLibs="false"` failure where no breakpoint binds — `ida-so-debugging.md` |
 | Kernel-side event injection | watchpoints and register rewrites from a driver, as gated templates — `kernel-event-injection.md` |
 | Working from the phone itself | MT Manager edit/repack/sign and its APK MCP, LSPosed Manager, Termux — `on-device-tooling.md` |
 | Publishing without publishing the target | the leak scanner, the do-not-anonymize list, and the graded precedent library — `desensitization-and-leak-scans.md`, `scripts/scan_leaks.py`, `precedents/` |
@@ -76,9 +78,10 @@ dependency yourself.
 
 ## Not covered — say so rather than improvise
 
-Unity / IL2CPP logic recovery · React Native, Hermes bytecode and Cordova internals · iOS of any kind ·
+React Native, Hermes bytecode and Cordova internals · iOS of any kind ·
 defeating a server-side authority · an off-the-shelf unpacker · an anti-detection arms race · building
-and shipping a kernel module · a Stalker trace guaranteed on every device.
+and shipping a kernel module · a Stalker trace guaranteed on every device · **a measured** Unity /
+IL2CPP route (the documented one is `unity-runtime.md`, and it carries no measurement).
 
 Each has a reason and, where one exists, an evidence boundary — in `references/coverage-and-limits.md`.
 **Silence in that record is not support**, and a route that is only "documented" is not a route that

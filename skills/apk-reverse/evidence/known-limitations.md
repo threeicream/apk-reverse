@@ -71,9 +71,15 @@ built on them has nothing to check itself against.
   `aarch64` cross-compiler, `make` or `ndk-build`, and there is no kernel source. One structural
   correction survives without a measurement and is worth more than the templates: **an ordinary
   KernelSU module is a userspace module and cannot change a syscall return value.**
-- **Unity / IL2CPP logic recovery, React Native / Hermes bytecode and Cordova internals, and every
-  iOS or `.ipa` workflow.** The runtime can be identified; the logic recovery is not covered, and
-  there is no verified recipe for locating a method inside `libil2cpp.so` plus `global-metadata.dat`.
+- **React Native / Hermes bytecode and Cordova internals, and every iOS or `.ipa` workflow.** The
+  runtime can be identified; the internals are not covered.
+- **A measured Unity / IL2CPP route.** `unity-runtime.md` documents backend identification,
+  Il2CppDumper, the IDA import order, the Frida bridge and the dnSpy-Unity-mono patch — but nothing
+  in it was executed here, there is no byte-level reading of generated native code, and no package
+  was tested protected. Do not report a successful dump as a located method.
+- **A measured debugger attach.** `ida-so-debugging.md` documents the `dbgsrv` route and the
+  `am start -D` + JDWP handshake, never run here; the `extractNativeLibs="false"` chapter is the
+  recorded failure mode, not a fix verified on a hardened build.
 - **Defeating a server-side authority.** This skill determines *who owns a gate*, not how to break an
   authorization the server performs. Report it as a residual instead of patching harder.
 

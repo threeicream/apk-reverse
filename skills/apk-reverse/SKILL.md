@@ -138,10 +138,12 @@ snapshot dump you must obtain elsewhere and naming the front end matters · extr
 stops at the VMP boundary · a Stalker trace is not guaranteed on every device · a kernel-side answer
 requires a module this skill only scaffolds.
 
-**Not covered — say so rather than improvise:** Unity / IL2CPP · React Native / Hermes / Cordova ·
-iOS · defeating a server-side authority · an off-the-shelf unpacker or an anti-detection arms race ·
-building and shipping a kernel module. Reasons and evidence boundaries are in
-`references/coverage-and-limits.md`; **silence in that record is not support.**
+**Not covered — say so rather than improvise:** React Native / Hermes / Cordova · iOS · defeating a
+server-side authority · an off-the-shelf unpacker or an anti-detection arms race · building and
+shipping a kernel module. **Documented but never measured here** — Unity (Mono and IL2CPP) and
+attaching a real debugger to a `.so`: a route, not a result (`unity-runtime.md`,
+`ida-so-debugging.md`). Reasons and evidence boundaries are in `references/coverage-and-limits.md`;
+**silence in that record is not support.**
 
 **The fallback, as an instruction — this is a rule, not advice.** If the target does not match the
 covered list, or no symptom-index row matches, then **stop and classify before choosing a branch**:
@@ -242,6 +244,8 @@ unread in this repository.
 | The value you need (sign, token, risk parameter) is computed in **JavaScript** — a WebView or embedded JS engine — by an entry call fed a huge hex/base64 opcode literal: a JS virtual machine | `jsvmp-recovery.md` — de-obfuscate and **call it** first, then the stack/register-VM procedures and the four JS traps; `emulation-and-rpc.md` owns the call-don't-read route |
 | You are reading a decompiled **Kotlin** app and every class name is a meaningless short token (`nq.e`, `C0123x`) | `kotlin-name-recovery.md` — the original FQNs survive R8 inside `@DebugMetadata`/`@Metadata`; `scripts/kotlin_name_recovery.py` rebuilds the mapping from any jadx export |
 | A store build arrives as `base.apk` + `split_config.*.apk`, or a rebuilt build is refused **as a set** although every file verifies on its own | `split-apk.md` — one keystore across every member for `pm install-multiple`, and check that a merge is legal before trusting a merged single APK |
+| A debugger lists and attaches to the process, but the target `.so` is absent from the module list and every breakpoint in it refuses or never hits, while its feature works | `ida-so-debugging.md` §the `.so` was never extracted — `android:extractNativeLibs="false"` maps the library from `base.apk`, so there is no `/data/app/<pkg>/lib/<abi>/` file to bind to. Not an anti-debug finding |
+| A Unity package has no `Assembly-CSharp.dll` — only `libil2cpp.so` and `global-metadata.dat` — and every Java-layer hook turns out to be glue | `unity-runtime.md` — that is IL2CPP, the normal shipping configuration, not a stripped build: dump the pair with Il2CppDumper and import `script.json` before `stringliteral.json`, or the database is silently half-named |
 
 ## Gates — clear these before you patch, in order
 

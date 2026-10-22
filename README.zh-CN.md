@@ -115,6 +115,11 @@ references/               按需加载，每个文件一个主题
                               识别业务逻辑的三种签名、定位、打补丁。
                               开篇先讲它所依赖的 snapshot 解码前端（aotopsy 或
                               blutter），因为 pool 列表是输入，不是本 skill 自己产出的东西
+  unity-runtime.md            用两个决定一切的文件进入 Unity：Mono（`Assembly-CSharp.dll`）
+                              与 IL2CPP（`libil2cpp.so` + `global-metadata.dat`）的区分、
+                              用 Il2CppDumper 导出这一对文件、按能成功的顺序把表导入 IDA、
+                              让零售 Mono 播放器接受调试器的 dnSpy-Unity-mono 补丁、
+                              基于 frida-il2cpp-bridge 的运行时类查找，以及交付物是报告时的审计探针
   native-and-so.md            .so 宿主、DT_NEEDED vs JNI_OnLoad、重定位限制、
                               免重定位的 bootstrap、用 native 替换 Java 方法，
                               以及*实际加载并执行*的是哪个 ABI/库
@@ -122,6 +127,10 @@ references/               按需加载，每个文件一个主题
                               如何判断实际触发的是哪一个、如何定位现场、
                               伪造的 section header、由 PT_GNU_EH_FRAME 推出的
                               函数边界、扫描器陷阱，以及安全地失效化
+  ida-so-debugging.md            接一个真正的调试器而不是 hook：ABI 匹配的 IDA `dbgsrv`、
+                              `am start -D` 加真正放行进程的 JDWP 握手，以及
+                              `extractNativeLibs="false"`——库直接从 `base.apk` 映射、
+                              断点无处可绑的失败
   detection-and-anti-analysis.md  当 app 反击，或工具在这里跑不起来时：把检测与
                               环境损坏区分开、按成本而不是按升级来决策、认出
                               动态分析根本无效的环境，并把「挡住我的分析」这个问题
@@ -454,7 +463,7 @@ export APKREV_TOOLS=<dir>:<dir>                  # POSIX
 
 为处理你自己的应用、你被授权分析的样本，以及 CTF/竞赛沙箱而构建。它不含任何内置的第三方二进制，也不含任何目标特定数据。
 
-它覆盖什么、刻意不覆盖什么，写在 `SKILL.md` 顶部 **Coverage** 一节。简版：仅 Android（不含 iOS），并且在经过真实打磨的层上深入 —— dex 补丁、重打包、壳与自定义加载器、native 篡改响应，以及 Flutter/Dart AOT。一次扩展迭代加入了第二梯队的已记录路线：重打包受阻时的**模块侧交付**、**抽取壳恢复**及其 VMP 边界、用于「调用而不是阅读」的**模拟执行与实时 RPC**、针对 OLLVM 的**指令级追踪**、REST 之外的**协议逆向**、当用户态 hooking 可证明够不到时用的**内核路线**图，以及**设备上工具**。随后一次**基准迭代**把公开目标放到这些路线之下（`tests/benchmark.md`）：它加入了 **Java2C 判别**（那种会让 agent 去追一个从不存在的解密 DEX 的误诊）、**split APK / App Bundle 处理**、**无 schema 的 protobuf 解码**、一个 **Dex-VMP 差分**测试台，以及**带版本闸门的内核模块模板** —— 并纠正了先前两条与自身测量结果不一致的说法。随后一次**硬件迭代**加入了软件工具之下的那一层：带诚实 `TracerPid` 账本的**硬件观察点**、带五道闸门的 **ETE/TRBE 差分追踪**，以及**内核侧注入模板** —— 凡是宿主可验证的部分都实测过，凡是设备绑定的部分在闸门打开前一律标注 `unverified`。Unity/IL2CPP 逻辑恢复、React Native/Hermes 字节码内部，以及击败服务端权威**不**在覆盖范围内，skill 的写法就是明说这一点并停下，而不是把最近的一条已记录流程套用到一个它并非为之编写的目标上。
+它覆盖什么、刻意不覆盖什么，写在 `SKILL.md` 顶部 **Coverage** 一节。简版：仅 Android（不含 iOS），并且在经过真实打磨的层上深入 —— dex 补丁、重打包、壳与自定义加载器、native 篡改响应，以及 Flutter/Dart AOT。一次扩展迭代加入了第二梯队的已记录路线：重打包受阻时的**模块侧交付**、**抽取壳恢复**及其 VMP 边界、用于「调用而不是阅读」的**模拟执行与实时 RPC**、针对 OLLVM 的**指令级追踪**、REST 之外的**协议逆向**、当用户态 hooking 可证明够不到时用的**内核路线**图，以及**设备上工具**。随后一次**基准迭代**把公开目标放到这些路线之下（`tests/benchmark.md`）：它加入了 **Java2C 判别**（那种会让 agent 去追一个从不存在的解密 DEX 的误诊）、**split APK / App Bundle 处理**、**无 schema 的 protobuf 解码**、一个 **Dex-VMP 差分**测试台，以及**带版本闸门的内核模块模板** —— 并纠正了先前两条与自身测量结果不一致的说法。随后一次**硬件迭代**加入了软件工具之下的那一层：带诚实 `TracerPid` 账本的**硬件观察点**、带五道闸门的 **ETE/TRBE 差分追踪**，以及**内核侧注入模板** —— 凡是宿主可验证的部分都实测过，凡是设备绑定的部分在闸门打开前一律标注 `unverified`。Unity/IL2CPP 逻辑恢复与**给 `.so` 接真实调试器**属于**已记录但未实测**的路线 —— 吸收自公开文章，全文标注 `unverified`。React Native/Hermes 字节码内部，以及击败服务端权威**不**在覆盖范围内，skill 的写法就是明说这一点并停下，而不是把最近的一条已记录流程套用到一个它并非为之编写的目标上。
 
 Coverage 一节完整陈述、同时也应当放在这里的四条限定：
 

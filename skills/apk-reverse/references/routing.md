@@ -83,8 +83,10 @@ reference file is not named here, or when a script is not named here.
 | The value you need (sign, token, risk parameter) is computed in **JavaScript** — a WebView or embedded JS engine — by an entry call fed a huge hex/base64 opcode literal: a JS virtual machine | `jsvmp-recovery.md` — de-obfuscate and **call it** first, then the stack/register-VM procedures and the four JS traps; `emulation-and-rpc.md` owns the call-don't-read route |
 | You are reading a decompiled **Kotlin** app and every class name is a meaningless short token (`nq.e`, `C0123x`) | `kotlin-name-recovery.md` — the original FQNs survive R8 inside `@DebugMetadata`/`@Metadata`; `scripts/kotlin_name_recovery.py` rebuilds the mapping from any jadx export |
 | A store build arrives as `base.apk` + `split_config.*.apk`, or a rebuilt build is refused **as a set** although every file verifies on its own | `split-apk.md` — one keystore across every member for `pm install-multiple`, and check that a merge is legal before trusting a merged single APK |
+| A debugger lists and attaches to the process, but the target `.so` is absent from the module list and every breakpoint in it refuses or never hits, while its feature works | `ida-so-debugging.md` §the `.so` was never extracted — `android:extractNativeLibs="false"` maps the library from `base.apk`, so there is no `/data/app/<pkg>/lib/<abi>/` file to bind to. Not an anti-debug finding |
+| A Unity package has no `Assembly-CSharp.dll` — only `libil2cpp.so` and `global-metadata.dat` — and every Java-layer hook turns out to be glue | `unity-runtime.md` — that is IL2CPP, the normal shipping configuration, not a stripped build: dump the pair with Il2CppDumper and import `script.json` before `stringliteral.json`, or the database is silently half-named |
 
-_56 row(s) below the header._
+_65 row(s) below the header._
 
 ## Reference index (no longer inline in `SKILL.md`)
 
@@ -147,8 +149,10 @@ _56 row(s) below the header._
 | `references/kernel-and-environment-hardening.md` | Userspace hooking provably cannot reach the check — raw `svc` syscalls, `init_array`-early detection: what each layer can still do, the kernel-route map with its version gate, and when escalating is wrong |
 | `references/on-device-tooling.md` | Working **from the phone itself**: MT Manager edit/repack/sign and its built-in APK MCP, LSPosed Manager, Termux+frida, and on-device data inspection |
 | `references/split-apk.md` | The target is a **split APK / App Bundle set** (`base.apk` + `split_config.*.apk`), or `pm path <PKG>` returned several files: reading a set, merge versus unified re-signing, and the install refusal each mistake produces |
+| `references/unity-runtime.md` | The package is **Unity**: telling Mono from IL2CPP, dumping `libil2cpp.so` + `global-metadata.dat` with Il2CppDumper and importing it into IDA in the order that works, a run-time lookup over frida-il2cpp-bridge, the dnSpy-Unity-mono patch for a Mono player, and the audit probes when the deliverable is a report |
+| `references/ida-so-debugging.md` | You need to **single-step or breakpoint a `.so`** rather than hook it: IDA's `dbgsrv` server with the ABI match, the wait-for-debugger start plus the JDWP handshake that actually releases the app, and the `extractNativeLibs="false"` failure where no breakpoint can bind |
 
-_46 row(s) below the header._
+_58 row(s) below the header._
 
 ## Script index (no longer inline in `SKILL.md`)
 
@@ -220,4 +224,4 @@ _46 row(s) below the header._
 | `scripts/svc_scan.py` | Name the syscall behind an inline `svc` and the segment it sits in — which decides whether a libc-level hook can observe the call at all. `--context` shows neighbours, because a byte scan also matches data |
 | `scripts/anti_detect_probe.js` | Observer-only probe (patches nothing): path/loader/thread/kill hooks with **caller module + offset**, an environment self-report (`TracerPid`, frida-named mappings), and live streaming so a sub-second target still yields evidence |
 
-_56 row(s) below the header._
+_64 row(s) below the header._

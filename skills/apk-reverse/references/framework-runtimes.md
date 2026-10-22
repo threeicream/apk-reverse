@@ -14,7 +14,7 @@ Signals in the APK:
 |---|---|
 | Flutter | `libflutter.so`, `libapp.so`, `assets/flutter_assets/`, Dart snapshot |
 | React Native | `libhermes.so` or `libjsc.so`, `index.android.bundle`, `assets/index.android.bundle` |
-| Unity | `libunity.so`, `libil2cpp.so`, `assets/bin/Data/`, `globalgamemanagers` |
+| Unity | `libunity.so`, `libil2cpp.so`, `assets/bin/Data/`, `globalgamemanagers` → `unity-runtime.md` for Mono versus IL2CPP |
 | Cordova / Ionic | `assets/www/`, `cordova.js` |
 | Xamarin / .NET | `libmonodroid.so`, `assemblies/` in the APK |
 
@@ -73,6 +73,23 @@ large enough to have its own reference: **`references/dart-aot.md`** covers pinn
 building a decompiler for exactly that version, the object-pool model and how to index it, the register
 and boolean conventions, the three assembly signatures that identify most business logic, the locating
 workflow, and how to patch this layer safely.
+
+## Unity specifics
+
+- **Two backends, and they are not the same problem.** A Mono build ships readable CIL
+  (`assets/bin/Data/Managed/Assembly-CSharp.dll`); an IL2CPP build ships
+  `lib/<abi>/libil2cpp.so` **plus** `assets/bin/Data/Managed/Metadata/global-metadata.dat`, and the
+  metadata is what carries the names. `references/unity-runtime.md` covers identifying which one you
+  have, dumping the pair with Il2CppDumper, importing the result into IDA in the order that works, and
+  the Frida bridge for a run-time lookup.
+- **A Unity UI is drawn by the engine, so Java hooks are glue.** The Android layer is SDKs, permissions
+  and the launch Activity; the gate you are looking at is a C# method. Patching the dex to remove it is
+  the layer error this file opens with.
+- **`Debugger.IsAttached` is a real anti-debug here.** A retail Mono runtime refuses a debugger
+  connection at the VM level, which reads as "the game is protected" — `unity-runtime.md` §Debugging
+  Mono at run time owns that path, and `ida-so-debugging.md` owns the native attach underneath it.
+- **The metadata can be encrypted while the `.so` is not, or the reverse.** Check each file's magic
+  before concluding the dump failed; the two failures have different routes.
 
 ## Locating logic without symbols
 
