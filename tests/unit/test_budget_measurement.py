@@ -112,3 +112,25 @@ def test_an_index_row_past_the_hard_limit_fails_rather_than_warns(budget):
     assert levels(budget.INDEX_ROW_HARD + 10) == {"fail"}, (
         "a row past INDEX_ROW_HARD (%d chars) must fail the gate, not warn about it"
         % budget.INDEX_ROW_HARD)
+
+def test_the_corpus_count_ignores_a_bytecode_cache(budget, tmp_path, monkeypatch):
+    """A measurement that changes when a reader runs the suite measures the reader.
+
+    The corpus note once counted scripts/__pycache__/*.pyc, so the same commit reported 27 scripts
+    on a machine that had run pytest and 16 on a clean checkout. The routing gate said 16 the whole
+    time; the disagreement between two gates about one tree is what surfaced it.
+    """
+    refs = tmp_path / "references"
+    refs.mkdir()
+    (refs / "one.md").write_text("# one\n", encoding="utf-8")
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    (scripts / "one.py").write_text("print(1)\n", encoding="utf-8")
+    cache = scripts / "__pycache__"
+    cache.mkdir()
+    (cache / "one.cpython-314.pyc").write_bytes(b"\x00" * 10)
+
+    monkeypatch.setattr(budget, "REFS", str(refs))
+    monkeypatch.setattr(budget, "SKILL_DIR", str(tmp_path))
+    notes = budget.check_corpus()
+    assert notes[0].startswith("corpus: 1 references + 1 scripts = 2 files"), notes[0]

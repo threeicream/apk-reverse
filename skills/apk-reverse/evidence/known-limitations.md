@@ -74,9 +74,16 @@ built on them has nothing to check itself against.
 - **React Native / Hermes bytecode and Cordova internals, and every iOS or `.ipa` workflow.** The
   runtime can be identified; the internals are not covered.
 - **A measured Unity / IL2CPP route.** `unity-runtime.md` documents backend identification,
-  Il2CppDumper, the IDA import order, the Frida bridge and the dnSpy-Unity-mono patch — but nothing
-  in it was executed here, there is no byte-level reading of generated native code, and no package
-  was tested protected. Do not report a successful dump as a located method.
+  Il2CppDumper, the IDA import order, the Frida bridge and the dnSpy-Unity-mono patch, and
+  `il2cpp-protected-metadata.md` documents the absent/encrypted/embedded/version-lying cases plus the
+  live-image dump and ELF repair — but nothing in either was executed here, there is no byte-level
+  reading of generated native code, and no package was tested protected. Do not report a successful
+  dump as a located method.
+- **A measured linker-level `.so` repair, VM-protector analysis or Python bytecode recovery.**
+  `linker-and-soinfo-repair.md`, `vm-protector-analysis.md` and `python-bytecode-recovery.md` are
+  absorbed routes: the arithmetic and idioms are documented, but no loader was reimplemented, no
+  protected VM was traced, and no Pyarmor sample was unpacked here. Every field offset is
+  version-specific; a repair or a key that works on one build is not evidence for the next.
 - **A measured debugger attach.** `ida-so-debugging.md` documents the `dbgsrv` route and the
   `am start -D` + JDWP handshake, never run here; the `extractNativeLibs="false"` chapter is the
   recorded failure mode, not a fix verified on a hardened build.

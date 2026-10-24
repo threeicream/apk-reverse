@@ -120,6 +120,20 @@ references/               按需加载，每个文件一个主题
                               用 Il2CppDumper 导出这一对文件、按能成功的顺序把表导入 IDA、
                               让零售 Mono 播放器接受调试器的 dnSpy-Unity-mono 补丁、
                               基于 frida-il2cpp-bridge 的运行时类查找，以及交付物是报告时的审计探针
+  il2cpp-protected-metadata.md
+                              当这一对不可读时：缺失、0 字节、加密或内嵌的 metadata、
+                              从消费端 dump、不信任版本号的 header 定长、XOR/VM/XXTEA
+                              容器形态、活体镜像 dump，以及让 dump 可用的 ELF 修复
+  linker-and-soinfo-repair.md 手工加载、dump 或修复 .so：把 `dlopen` 管线当作 loader
+                              规范、load_bias 与段映射算术、DT_* 解析、重定位规则与
+                              两个 bias、最小 `soinfo` 修复、反 dump 的 header XOR，
+                              以及 dump 在哪个窗口内有效
+  vm-protector-analysis.md    带虚拟 eflags 的 native VM 保护：没有 cmp/sub/jcc、只有
+                              flags 槽、NAND 降级、无分支选择、数据锚定断点与
+                              「先 trace 再按常量搜索」；handler 切片仍在 native-vm-recovery.md
+  python-bytecode-recovery.md Pyarmor/PyInstaller 之后的 Python 字节码：密钥调度、
+                              AES-CTR nonce 规则、12 字节 VM、按版本分支的 pyc 解析、
+                              extra section TLV 与按 code object/字符串解密
   native-and-so.md            .so 宿主、DT_NEEDED vs JNI_OnLoad、重定位限制、
                               免重定位的 bootstrap、用 native 替换 Java 方法，
                               以及*实际加载并执行*的是哪个 ABI/库
@@ -463,7 +477,7 @@ export APKREV_TOOLS=<dir>:<dir>                  # POSIX
 
 为处理你自己的应用、你被授权分析的样本，以及 CTF/竞赛沙箱而构建。它不含任何内置的第三方二进制，也不含任何目标特定数据。
 
-它覆盖什么、刻意不覆盖什么，写在 `SKILL.md` 顶部 **Coverage** 一节。简版：仅 Android（不含 iOS），并且在经过真实打磨的层上深入 —— dex 补丁、重打包、壳与自定义加载器、native 篡改响应，以及 Flutter/Dart AOT。一次扩展迭代加入了第二梯队的已记录路线：重打包受阻时的**模块侧交付**、**抽取壳恢复**及其 VMP 边界、用于「调用而不是阅读」的**模拟执行与实时 RPC**、针对 OLLVM 的**指令级追踪**、REST 之外的**协议逆向**、当用户态 hooking 可证明够不到时用的**内核路线**图，以及**设备上工具**。随后一次**基准迭代**把公开目标放到这些路线之下（`tests/benchmark.md`）：它加入了 **Java2C 判别**（那种会让 agent 去追一个从不存在的解密 DEX 的误诊）、**split APK / App Bundle 处理**、**无 schema 的 protobuf 解码**、一个 **Dex-VMP 差分**测试台，以及**带版本闸门的内核模块模板** —— 并纠正了先前两条与自身测量结果不一致的说法。随后一次**硬件迭代**加入了软件工具之下的那一层：带诚实 `TracerPid` 账本的**硬件观察点**、带五道闸门的 **ETE/TRBE 差分追踪**，以及**内核侧注入模板** —— 凡是宿主可验证的部分都实测过，凡是设备绑定的部分在闸门打开前一律标注 `unverified`。Unity/IL2CPP 逻辑恢复与**给 `.so` 接真实调试器**属于**已记录但未实测**的路线 —— 吸收自公开文章，全文标注 `unverified`。React Native/Hermes 字节码内部，以及击败服务端权威**不**在覆盖范围内，skill 的写法就是明说这一点并停下，而不是把最近的一条已记录流程套用到一个它并非为之编写的目标上。
+它覆盖什么、刻意不覆盖什么，写在 `SKILL.md` 顶部 **Coverage** 一节。简版：仅 Android（不含 iOS），并且在经过真实打磨的层上深入 —— dex 补丁、重打包、壳与自定义加载器、native 篡改响应，以及 Flutter/Dart AOT。一次扩展迭代加入了第二梯队的已记录路线：重打包受阻时的**模块侧交付**、**抽取壳恢复**及其 VMP 边界、用于「调用而不是阅读」的**模拟执行与实时 RPC**、针对 OLLVM 的**指令级追踪**、REST 之外的**协议逆向**、当用户态 hooking 可证明够不到时用的**内核路线**图，以及**设备上工具**。随后一次**基准迭代**把公开目标放到这些路线之下（`tests/benchmark.md`）：它加入了 **Java2C 判别**（那种会让 agent 去追一个从不存在的解密 DEX 的误诊）、**split APK / App Bundle 处理**、**无 schema 的 protobuf 解码**、一个 **Dex-VMP 差分**测试台，以及**带版本闸门的内核模块模板** —— 并纠正了先前两条与自身测量结果不一致的说法。随后一次**硬件迭代**加入了软件工具之下的那一层：带诚实 `TracerPid` 账本的**硬件观察点**、带五道闸门的 **ETE/TRBE 差分追踪**，以及**内核侧注入模板** —— 凡是宿主可验证的部分都实测过，凡是设备绑定的部分在闸门打开前一律标注 `unverified`。Unity/IL2CPP 逻辑恢复（含受保护的 metadata 情形）、linker 层的 `.so` 修复、VM 保护器惯用法、Python/Pyarmor 字节码恢复，以及**给 `.so` 接真实调试器**属于**已记录但未实测**的路线 —— 吸收自公开文章，全文标注 `unverified`。React Native/Hermes 字节码内部，以及击败服务端权威**不**在覆盖范围内，skill 的写法就是明说这一点并停下，而不是把最近的一条已记录流程套用到一个它并非为之编写的目标上。
 
 Coverage 一节完整陈述、同时也应当放在这里的四条限定：
 

@@ -223,6 +223,46 @@ Interceptor.attach(f, {
 });
 ```
 
+### Native registration, load order and late mapping
+
+Five mechanics that a plain `Interceptor.attach` misses. They are absorbed from a public Frida
+cookbook and not measured here; the failure each one prevents is.
+
+**A `RegisterNatives` table is walked once.** Enumerate `libart.so` symbols, keep names containing
+`JNI` but **not** `CheckJNI` (the debug wrapper duplicates the export), attach the `RegisterNatives`
+you find, and read `args[2]` as an array of `JNINativeMethod`: name pointer at `+0`, signature
+pointer at `+ptr_size`, native entry at `+2*ptr_size`. Because registration happens before
+`dlopen` returns, attach-to-running-process sees nothing; spawn with `-f`.
+
+**A module may not be mapped when the script loads.** Gate the real hook on module load: attach both
+`dlopen` and `android_dlopen_ext` (the latter for newer Android), match the path in `onEnter`, and
+install the target hook in `onLeave`. A `Module.findBaseAddress` that returns `null` at injection
+time is an ordering problem, not a missing library.
+
+**Read registers at the instruction *after* the one that sets them.** Attaching at `0x...1C` to read
+a register written by the instruction at `0x...18` sees the old value on some compilers. Attach to
+the next instruction and read `this.context.xN`. For Thumb, pass `base.add(off).add(1)` to the
+disassembler, or it decodes in ARM mode and every mnemonic is nonsense.
+
+**JNI argument shapes are readable without a decompiler.** A pointer argument wants `hexdump`; a
+small positive integer is often a length; `&x` is an output buffer; a pointer-to-pointer needs one
+more `readPointer()` before the dump. For a `jstring`, use
+`ptr(Java.vm.tryGetEnv().getStringUtfChars(args[n])).readCString()`, and the same on `retval`.
+If the routine is a C++ member, active invocation needs the right convention:
+`new NativeFunction(addr, 'int', ['pointer','int'], 'thiscall')`.
+
+**Patch the init function, not the exit it calls.** When a library's `DT_INIT` is the check, hooking
+`kill`/`exit` is often too late or never reached. Enumerate the linker's symbols for
+`__dl__ZL13call_functionPKcPFviPPcS2_ES0_`; on enter, `args[0]` is the tag (`DT_INIT`), `args[1]`
+the function, `args[2]` the library path. Match the path and patch the function's first bytes to two
+Thumb NOPs (`00 bf 00 bf`) **while `call_function` is running**, before the loader calls it. Patching
+after `dlopen` returns is by definition after the check has run.
+
+**OLLVM does not flatten the call graph.** When the decompiler output is unreadable, prioritize calls
+that sit outside `if`/`while` bodies, infer the algorithm family from constants used on
+non-conditional paths, and hook the candidate rather than reading the graph. A hook that prints the
+input/output shapes is cheaper evidence than a deobfuscated listing.
+
 ### Network / domain observation (cheap and very informative)
 ```javascript
 const Inet = Java.use('java.net.InetAddress');

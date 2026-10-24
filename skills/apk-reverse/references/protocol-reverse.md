@@ -138,6 +138,21 @@ The measured record for this tool -- every command, both input forms, the round 
 framing mistake it does *not* protect you from -- is in
 `references/evidence-summary.md` §The capability matrix.
 
+### 1.1 If the body is self-describing, skip the schema hunt
+
+Not every binary body is protobuf. **MessagePack** is self-describing: the first byte is a type and
+length tag, and maps/arrays carry their own shape, so a decoder needs no `.proto` and no generated
+code. Plausible leading tags are fixmap `0x80`-`0x8f`, fixarray `0x90`-`0x9f`, positive fixint
+`0x00`-`0x7f`, `str8 0xd9` and `map16 0xde`; the confirmation is a full decode with no leftover
+bytes. Re-encode with the same library (`packb`/`unpackb`) and re-encrypt with the app's own
+routine.
+
+**Prefer mutating the outbound request over the inbound response.** A response edit can make the UI
+render an unlocked state while the server still authorizes the live entry, so the change is visible
+and ineffective; a request edit changes what the server is asked to do. When both directions are
+available, test both once and record which one the server re-derives. (`unverified`: absorbed from
+one write-up; no MessagePack target was captured here.)
+
 ## 2. Recovering the schema from the APK
 
 ### What generated protobuf code looks like

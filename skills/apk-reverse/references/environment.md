@@ -123,6 +123,16 @@ wrong conclusion is the one that gets written down and trusted later.
 
 Emulators are the right place to iterate and the wrong place to conclude.
 
+- **Architecture is not interchangeable.** A VirtualBox-derived AVD is x86_64; an app that ships only
+  ARM64 libraries may install and then crash at load. Windows Subsystem for Android can run an ARM64
+  *app* through its ARM translation layer, but it cannot run an ARM64 `frida-server`; pointing an
+  x86_64 server at the same process commonly yields no process in the list and no hooks — which looks
+  like an anti-debug finding and is a host/guest mismatch. Dynamic work on an ARM64-only target
+  therefore needs a rooted physical ARM device or an Apple-silicon host. For an AVD, a `rootAVD`-style
+  ramdisk patch plus `-writable-system -selinux disabled` is the documented route; verify with
+  `su -c id` rather than trusting the boot flag. (Absorbed from a public walkthrough, not measured
+  here.)
+
 - **Verify the app can install at all.** INSTALL failures on emulators are common (ABI, min SDK,
   vendor checks, a stale copy with a different signature) and are usually **not** related to your
   patch. Get a clean install of the *unmodified* build working before you change anything.

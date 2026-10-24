@@ -279,6 +279,16 @@ hand showed 21 byte-scan "svc sites" that were all **data**, with no call-number
 them: a byte scan for `svc` matches inside data, so read the neighbours before believing a count.
 That distinction — structural absence vs. observed absence — is what Stage 6 is for.
 
+### Timing-delayed checks: hook the delay, not the branch
+
+A check that appears only after you hook a particular library, and appears **seconds later**, may be
+measuring elapsed time rather than reacting immediately. The primitive is usually `sleep` or
+`nanosleep`: hook it, rewrite `args[0]` to a large value, and take a backtrace from the hook. If the
+delayed popup disappears and the backtrace names one module plus a handful of offsets, those callers
+are the next static target. This is lower-risk than patching the checker because it changes the
+measurement, not the decision — and it gives you the module to read. (`unverified`: absorbed from one
+write-up; not run here.)
+
 ### The routing chain, on one page
 
 ```

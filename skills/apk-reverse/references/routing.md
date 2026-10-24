@@ -85,8 +85,13 @@ reference file is not named here, or when a script is not named here.
 | A store build arrives as `base.apk` + `split_config.*.apk`, or a rebuilt build is refused **as a set** although every file verifies on its own | `split-apk.md` — one keystore across every member for `pm install-multiple`, and check that a merge is legal before trusting a merged single APK |
 | A debugger lists and attaches to the process, but the target `.so` is absent from the module list and every breakpoint in it refuses or never hits, while its feature works | `ida-so-debugging.md` §the `.so` was never extracted — `android:extractNativeLibs="false"` maps the library from `base.apk`, so there is no `/data/app/<pkg>/lib/<abi>/` file to bind to. Not an anti-debug finding |
 | A Unity package has no `Assembly-CSharp.dll` — only `libil2cpp.so` and `global-metadata.dat` — and every Java-layer hook turns out to be glue | `unity-runtime.md` — that is IL2CPP, the normal shipping configuration, not a stripped build: dump the pair with Il2CppDumper and import `script.json` before `stringliteral.json`, or the database is silently half-named |
+| A Unity IL2CPP package has **no readable `global-metadata.dat`** — 0 bytes, absent, wrong magic, a custom container, or a metadata version that disagrees with its own struct | `il2cpp-protected-metadata.md` — anchor on the consumer's output pointer, size the header without trusting its version, and recognise the XOR/VM/XXTEA shapes; `unity-runtime.md` owns the readable case |
+| You dumped `libil2cpp.so` from memory but the disassembler shows no symbols, or every registration search returns 0 | `il2cpp-protected-metadata.md` §4.1 — `p_offset=p_vaddr`, `p_filesz=p_memsz`, `e_shoff` from the last `PT_LOAD` end, `e_shstrndx`, `sh_offset=sh_addr`; the dump is fine, the ELF metadata is not |
+| A `dlopen`-able `.so` will not load after a custom loader, or a repaired `soinfo` resolves symbols to garbage | `linker-and-soinfo-repair.md` — bias versus base, `seg_page_offset`, the defining library's bias, `APS2` packed relocs, the minimal `soinfo` field set, and the dump window after `LoadSegments` |
+| A native trace has no `cmp`/`sub`/`jcc` — only `and/or/not/shr/neg`, a flags slot, and a `ret` that lands at a VM entry | `vm-protector-analysis.md` — virtual eflags is data, NAND lowering, branchless select, data-anchored breakpoints, and trace-then-search-by-constant; dispatcher slicing stays in `native-vm-recovery.md` |
+| The logic you need is Python bytecode — a `.pyc`/PyInstaller/Pyarmor payload rather than Java, Dart or native | `python-bytecode-recovery.md` — key schedule, AES-CTR nonce rules, the 12-byte VM, version-gated `pyc` parsing and the extra-section TLV; static and offline, then call the recovered module |
 
-_65 row(s) below the header._
+_70 row(s) below the header._
 
 ## Reference index (no longer inline in `SKILL.md`)
 
@@ -150,9 +155,13 @@ _65 row(s) below the header._
 | `references/on-device-tooling.md` | Working **from the phone itself**: MT Manager edit/repack/sign and its built-in APK MCP, LSPosed Manager, Termux+frida, and on-device data inspection |
 | `references/split-apk.md` | The target is a **split APK / App Bundle set** (`base.apk` + `split_config.*.apk`), or `pm path <PKG>` returned several files: reading a set, merge versus unified re-signing, and the install refusal each mistake produces |
 | `references/unity-runtime.md` | The package is **Unity**: telling Mono from IL2CPP, dumping `libil2cpp.so` + `global-metadata.dat` with Il2CppDumper and importing it into IDA in the order that works, a run-time lookup over frida-il2cpp-bridge, the dnSpy-Unity-mono patch for a Mono player, and the audit probes when the deliverable is a report |
+| `references/il2cpp-protected-metadata.md` | A Unity IL2CPP pair is **not readable**: `global-metadata.dat` is absent, 0 bytes, encrypted, embedded, or its version lies. Consumer-side dump, version-independent header sizing, the XOR/VM/XXTEA container shapes, the live-image dump, and the ELF repair that makes a dump usable |
+| `references/python-bytecode-recovery.md` | The logic is **Python bytecode** behind Pyarmor or PyInstaller: key derivation, AES-CTR nonce rules, the 12-byte VM, a version-gated `pyc` parser, the extra-section TLV, and per-code-object / per-string decryption |
+| `references/linker-and-soinfo-repair.md` | A protected `.so` must be loaded or dumped **by hand**: the `dlopen` pipeline as a loader spec, load_bias and segment arithmetic, `DT_*` parsing, relocation rules and the two biases, the minimal `soinfo` repair set, anti-dump header XOR, and where a dump is valid |
+| `references/vm-protector-analysis.md` | A native function is a VM protector with **virtual eflags**: no `cmp`/`sub`/`jcc`, only `and/or/not/shr/neg` and a flags slot. Envelope triage, VM anatomy, data-anchored breakpoints, trace-then-search-by-constant, NAND lowering, and branchless select. Handler slicing stays in `native-vm-recovery.md` |
 | `references/ida-so-debugging.md` | You need to **single-step or breakpoint a `.so`** rather than hook it: IDA's `dbgsrv` server with the ABI match, the wait-for-debugger start plus the JDWP handshake that actually releases the app, and the `extractNativeLibs="false"` failure where no breakpoint can bind |
 
-_58 row(s) below the header._
+_62 row(s) below the header._
 
 ## Script index (no longer inline in `SKILL.md`)
 

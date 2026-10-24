@@ -2,6 +2,11 @@
 
 If the behavior you want to change is produced by a response, patch the client all you like: nothing real changes. Establishing server authority early is the cheapest high-value step in any "crack this" task.
 
+**Test the outbound direction first.** Rewriting a response can make the client render a state the
+server never granted; rewriting a request changes what the server is asked to do. When you have both
+proxies available, mutate the request once and the response once, and keep the one whose effect
+survives a reload. A response-only success is a UI fact, not an authority fact.
+
 ## Harvest the API surface from the client
 
 ```bash

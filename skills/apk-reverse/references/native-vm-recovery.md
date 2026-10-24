@@ -21,6 +21,9 @@ None of the signals below proves a VM alone — a big switch, a state machine, a
 table and an event dispatcher all look similar. The judgement is **several appearing together**:
 
 1. one large native function, called often, taking a chunk of external data;
+
+If the missing piece is not the dispatcher but *what a handler computes* — no `cmp`/`sub`, a flags
+slot written to the virtual context, `and/or/not` runs — `vm-protector-analysis.md` owns that idiom.
 2. a loop that reads a cursor from one buffer, dispatches on the value read, and writes the
    cursor back — the `while(running){ opcode=code[pc]; execute(opcode); pc=next_pc; }` shape;
 3. a **virtual register file**: many paths access `base + index*8` (or *4, *2) where *index*
@@ -48,6 +51,22 @@ proves nothing about which layer it is. Judge by behaviour, not shape:
 
 Mislabelling the CFF table as `VM_HANDLER_TABLE` poisons everything downstream: every
 opcode→handler pair after it is wrong. The write-up's first correction was exactly this.
+
+### 2.1 Encoded handler tables
+
+A table entry does not have to be a pointer. One ARM64 sample stored 64-bit values that only become
+targets after adding a constant (`table[i] + 0x740078FC`, yielding offsets such as `0x3BA04`).
+Resolve both arms arithmetically before deciding which one is semantically required, then patch the
+conditional, not the table. When a callee is patched, undefine and rebuild the caller, or the
+decompiler keeps the stale target and the next reading is wrong.
+
+### 2.2 A dispatcher invariant worth exploiting
+
+When the obfuscator routes every transfer through one register (`r9` in one sample, `rdx` in
+another) and the landing instruction is a benign `nop`, enumerate real blocks by filtering the trace
+for "indirect jump through that register whose target begins with `nop`". That skips symbolic
+simplification of the MBA expressions entirely. The register is sample-specific; the invariant is the
+benign landing instruction.
 
 ## 3. Do not fully deflatten first — chase the VM data flow
 

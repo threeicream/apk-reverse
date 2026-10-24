@@ -17,6 +17,7 @@ Signals in the APK:
 | Unity | `libunity.so`, `libil2cpp.so`, `assets/bin/Data/`, `globalgamemanagers` → `unity-runtime.md` for Mono versus IL2CPP |
 | Cordova / Ionic | `assets/www/`, `cordova.js` |
 | Xamarin / .NET | `libmonodroid.so`, `assemblies/` in the APK |
+| Python (Chaquopy / Kivy / BeeWare) | `libpython3.*.so`, `assets/` with `.pyc`/`.pyz`, `pyarmor`/`__pyarmor__` bootstrap → `python-bytecode-recovery.md` |
 
 A `classes.dex` that is small relative to the total payload is another strong hint that the real code
 lives elsewhere.

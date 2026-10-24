@@ -200,6 +200,22 @@ references/               loaded on demand, one topic each
                               dnSpy-Unity-mono patch that makes a retail Mono player accept a
                               debugger, a run-time class lookup over frida-il2cpp-bridge, and
                               the audit probes when the deliverable is a report
+  il2cpp-protected-metadata.md
+                              when that pair is not readable: absent, 0-byte, encrypted or
+                              embedded metadata, the consumer-side dump, version-independent
+                              header sizing, XOR/VM/XXTEA container shapes, the live-image dump
+                              and the ELF repair that makes it usable
+  linker-and-soinfo-repair.md loading, dumping or repairing a .so by hand: the `dlopen` pipeline
+                              as a loader spec, load_bias and segment arithmetic, DT_* parsing,
+                              relocation rules and the two biases, minimal `soinfo` repair,
+                              anti-dump header XOR, and where a dump is valid
+  vm-protector-analysis.md    a native VM protector with virtual eflags: no cmp/sub/jcc, a flags
+                              slot, NAND lowering, branchless select, data-anchored breakpoints
+                              and trace-then-search-by-constant; handler slicing stays in
+                              native-vm-recovery.md
+  python-bytecode-recovery.md Python bytecode behind Pyarmor/PyInstaller: key schedule, AES-CTR
+                              nonce rules, the 12-byte VM, version-gated pyc parsing, the
+                              extra-section TLV and per-object/per-string decryption
   native-and-so.md            .so hosts, DT_NEEDED vs JNI_OnLoad, relocation limits,
                               relocation-free bootstrapping, replacing Java methods natively,
                               and which ABI/library is *actually loaded and executing*
@@ -602,9 +618,10 @@ whose measurements disagreed with them. A **hardware pass** then added the layer
 software tooling: **hardware watchpoints** with their honest `TracerPid` ledger, **ETE/TRBE
 differential tracing** with its five gates, and **kernel-side injection templates** — every
 host-checkable piece measured, every device-bound piece labelled `unverified` until a gate
-opens. Unity/IL2CPP logic recovery and
-attaching a real debugger to a `.so` are **documented routes, not measurements** — absorbed from
-public write-ups and labelled `unverified` throughout. React Native/Hermes bytecode internals and
+opens. Unity/IL2CPP logic recovery (including
+the protected-metadata case), linker-level `.so` repair, VM-protector idioms, Python/Pyarmor
+bytecode recovery and attaching a real debugger to a `.so` are **documented routes, not
+measurements** — absorbed from public write-ups and labelled `unverified` throughout. React Native/Hermes bytecode internals and
 defeating a server-side authority are **not** covered, and the skill is written to say so and stop
 rather than apply the nearest documented procedure to a target it was not written for.
 

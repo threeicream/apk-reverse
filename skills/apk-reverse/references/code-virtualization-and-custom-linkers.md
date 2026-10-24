@@ -159,6 +159,51 @@ payload and jumping to a zero entry. Treat "`Invalid ELF magic` appears on my bu
 original" as **proof the loader is validating the build**, which is exactly what makes the
 string-redirect route worth trying.
 
+When the loader itself becomes the object of study — you need to load, dump or repair its payload
+rather than neutralise its check — `linker-and-soinfo-repair.md` owns the pipeline arithmetic and
+the `soinfo` hand-off; this file owns recognising that the loader is present and deciding whether
+to keep it.
+
+## Staged loaders that decrypt a DEX from assets
+
+A second family does not keep the payload in the APK's dex at all. Recognise it by the *shape*, not
+by a product name:
+
+1. A Java `Application`/`attachBaseContext` loads a small stage-1 `.so`.
+2. That library's `JNI_OnLoad` calls `RegisterNatives` for two or three methods and returns.
+3. `attachBaseContext` then calls one of them with `dataDir`, `nativeLibraryDir` and the
+   `AssetManager` — the arguments are the tell that the native side is about to write a file and
+   load code from it.
+4. The native method opens an asset whose name looks random, derives a key, decrypts an AES payload
+   into Dalvik bytecode, and returns a direct `ByteBuffer`.
+5. Java passes that buffer to a `DexClassLoader`/`loadDex` path. The stage-1 `.so` may then launch a
+   stage-2 `.so` from the decrypted code.
+
+The stage-2 payload often lives in `assets` as an extensionless `.sec` file. One sample selected it
+by CPU family — including mapping **ARM64 to an `x64`-named payload** — then:
+
+- hex-decoded a constant string into an AES-256 key and a per-block IV;
+- decrypted 16-byte blocks with AES, then XORed each with the IV;
+- read an **8-byte tail** from the `.sec` file as an offset, copied `[offset, EOF)` as the real
+  payload, and XORed that region with the file's own prefix;
+- decrypted the exported symbol name with the same construction before `dlsym`, and `unlink`ed the
+  temporary file after `dlopen`.
+
+**What generalises:** the asset name, key, IV and tail layout are per-build and must be read from
+the loader, not carried across. What does carry is the diagnostic chain — *asset with a random name +
+`AssetManager` passed into a registered native method + a returned direct buffer + `DexClassLoader`*
+— and the fact that the second stage picks its payload by ABI, so an x86 host may never see the
+ARM64 branch.
+
+**Preconditions to record before spending time:** whether the loader writes to `dataDir` or
+`nativeLibraryDir`, whether the payload is deleted after load, and which ABI the running process
+reports. A dump taken after the `unlink` can only come from memory; a dump taken before it can come
+from the file, which is cheaper and gives an exact length.
+
+**Claim strength.** One family, one sample, absorbed from a public write-up; keys and offsets are
+deliberately not reproduced. Treat the sequence as a recognition template and recover the constants
+from the binary in front of you.
+
 ## What the native check actually reads — measure it, don't guess
 
 A validation payload that reads "the signature" can be reading several different things, and the

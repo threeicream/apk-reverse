@@ -331,6 +331,14 @@ located, already sized, no search required:
 Copy those ranges first. Everything else — anonymous `rw-p`, `libc_malloc`, `.bss` —
 is a *search* target, and searching is the expensive half.
 
+**A `(deleted)` mapping is still readable while it is mapped.** When a JNI-reachable Java method has
+no implementation anywhere in the APK, look for a dex mapping whose path ends in `(deleted)` — a
+loader wrote the file, mapped or loaded it, then unlinked it. Copy that range before the process
+exits; `/proc/<pid>/mem` does not care that the name is gone. On one sample this recovered the only
+copy of a dynamically loaded dex and the Java method that had been invisible to jadx. Treat the
+range's `r--p` permission and a plausible `dex\n035` header as the control that it is code, not a
+cache.
+
 ### Address arithmetic is where this route silently breaks
 
 Three device-shell traps cost real time on the first run, and each one produces a

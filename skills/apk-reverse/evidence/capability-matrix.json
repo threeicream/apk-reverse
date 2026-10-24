@@ -681,12 +681,83 @@
       "benchmark_rows": [],
       "evidence": [
         "references/unity-runtime.md",
-        "references/framework-runtimes.md"
+        "references/framework-runtimes.md",
+        "references/il2cpp-protected-metadata.md"
       ],
       "evidence_not_shipped": [
-        "ref/unity1.md, ref/unity2.md, ref/unity3.md -- public Unity reverse-engineering write-ups (2026-02, 2026-06), methodology absorbed, no text copied"
+        "ref/unity1.md .. ref/unity12.md -- public Unity/IL2CPP reverse-engineering write-ups (2024-2026), methodology absorbed, no text copied"
       ],
-      "limits": "Absorbed, never run here: no Unity package was dumped and no patched Mono runtime was built in this record. What is documented: Mono versus IL2CPP identification by shipped files, Il2CppDumper over libil2cpp.so + global-metadata.dat with the metadata magic (0xFAB11BAF) as the encryption check, the four-step IDA import order (ida_py3.py, script.json, stringliteral.json, ida_with_struct_py3.py), a frida-il2cpp-bridge lookup for a run-time or encrypted case, and the dnSpy-Unity-mono patch set that makes a retail Mono player accept a debugger. Unverified details: the exact dnSpy patch hunks, the Android libmono.so equivalent (inferred from a desktop-only source), whether the loader prefers an on-disk .so on a hardened build, and every tool's behaviour on a stripped or protected package. No opcode or offset claim is made here."
+      "limits": "Absorbed, never run here: no Unity package was dumped and no patched Mono runtime was built in this record. What is documented: Mono versus IL2CPP identification by shipped files, Il2CppDumper over libil2cpp.so + global-metadata.dat with the metadata magic (0xFAB11BAF) as the encryption check, the four-step IDA import order (ida_py3.py, script.json, stringliteral.json, ida_with_struct_py3.py), a frida-il2cpp-bridge lookup for a run-time or encrypted case, and the dnSpy-Unity-mono patch set that makes a retail Mono player accept a debugger. Unverified details: the exact dnSpy patch hunks, the Android libmono.so equivalent (inferred from a desktop-only source), whether the loader prefers an on-disk .so on a hardened build, and every tool's behaviour on a stripped or protected package. No opcode or offset claim is made here. The protected-metadata and memory-dump half moved to the il2cpp-protected-metadata-recovery row; this row covers the readable case."
+    },
+    {
+      "capability": "il2cpp-protected-metadata-recovery",
+      "group": "runtime",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "unverified",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/il2cpp-protected-metadata.md",
+        "references/unity-runtime.md"
+      ],
+      "evidence_not_shipped": [
+        "ref/unity1.md, ref/unity2.md, ref/unity3.md, ref/unity4.md, ref/unity5.md, ref/unity6.md, ref/unity8.md, ref/unity10.md, ref/unity12.md -- public Unity/IL2CPP write-ups (2024-2026), methodology absorbed, no text copied",
+        "docs/tool-verification/EXTENSION-ref-absorption-2026-10.md (repository root, not shipped)"
+      ],
+      "limits": "Absorbed, never run here: no metadata was decrypted and no libil2cpp.so was dumped in this record. Covered as a route: deciding between absent, 0-byte, encrypted and embedded metadata; anchoring on the consumer's return pointer (MetadataLoader::LoadMetadataFile or GlobalMetadata::Initialize) instead of the path; the 0x10C descending-by-8 header sizing rule; repeating-key XOR (i & 0x7F), a custom-magic bytecode-VM container, XXTEA with a trailing length word, and length-derived string ciphers; dumping the second mapping and repairing p_offset/p_filesz/e_shoff/e_shstrndx/sh_offset; and treating the metadata version as a claim when the struct layout disagrees. Every offset and magic beyond 0xFAB11BAF belongs to one cited sample and is not a constant."
+    },
+    {
+      "capability": "linker-level-so-unpacking",
+      "group": "native",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "unverified",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/linker-and-soinfo-repair.md",
+        "references/code-virtualization-and-custom-linkers.md",
+        "references/advanced-unpacking.md"
+      ],
+      "evidence_not_shipped": [
+        "ref/so1.md, ref/so2.md, ref/so4.md -- public Android linker and SO-packing write-ups (Android 5.0/8.x source review plus a Frida cookbook), methodology absorbed, no text copied",
+        "docs/tool-verification/EXTENSION-ref-absorption-2026-10.md (repository root, not shipped)"
+      ],
+      "limits": "Source-reading synthesis plus a Frida cookbook, not a measurement: no loader was reimplemented and no protected .so was dumped here. The route covers the dlopen pipeline as a loader specification, load_size/load_bias, seg_page_offset when loading from memory, DT_HASH and DT_GNU_HASH layouts, RELATIVE/GLOB_DAT/JUMP_SLOT/IRELATIVE targets and the defining-library-versus-caller bias, APS2 packed relocations, the minimal soinfo repair set, anti-dump header XOR detected by ELF invariants, and the dump window at LoadSegments. soinfo offsets cited in the sources are Android-version-specific; resolving solist by symbol and taking layout from the matching AOSP tag is the durable form. Timing (constructors, one-shot RegisterNatives) is a documented boundary, not an end-to-end run."
+    },
+    {
+      "capability": "vm-protector-analysis",
+      "group": "native-dynamic",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "unverified",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/vm-protector-analysis.md",
+        "references/native-vm-recovery.md",
+        "references/native-dbi-and-deobfuscation.md"
+      ],
+      "evidence_not_shipped": [
+        "ref/vmp1.md, ref/vmp2.md, ref/vmp3.md -- public VMProtect teaching and crack write-ups (x86), methodology absorbed, no text copied",
+        "docs/tool-verification/EXTENSION-ref-absorption-2026-10.md (repository root, not shipped)"
+      ],
+      "limits": "Absorbed from x86 VMProtect-style samples and not executed against an Android target here. Covered: envelope triage (vmp/VMP0 section, entry jmp, push-imm/call, non-compiler prologue), VM_DATA/VM_CONTEXT/vEIP/vStack anatomy and central versus direct-threaded dispatch, data-anchored breakpoints with stack unwind, forged-return recognition, trace-then-search-by-constant with instruction-shape and operand-role filters, virtual eflags as a writable stack slot (eflags1 & 0x815 + eflags2 & ~0x815; ZF = & 0x40), NAND lowering and arithmetic identities, branchless select, and static rebase/xref caveats. Trace counts and addresses are one sample's and must not be carried across. It tells you which value a protected branch consumes; it does not reconstruct the original instruction stream."
+    },
+    {
+      "capability": "python-bytecode-recovery",
+      "group": "unpacking",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "unverified",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/python-bytecode-recovery.md",
+        "references/emulation-and-rpc.md"
+      ],
+      "evidence_not_shipped": [
+        "ref/py1.md -- public Pyarmor/pycdc static-unpacking write-up (2026), methodology absorbed, no text copied",
+        "docs/tool-verification/EXTENSION-ref-absorption-2026-10.md (repository root, not shipped)"
+      ],
+      "limits": "Absorbed from one Pyarmor build and never executed here. Covered: build-tag/RSA-blob/AST_nonce key derivation through MD5, AES-128-CTR with the 12-byte nonce and nonce[15]=2, the 12-byte nonce-XOR VM (8 registers, valid indices 0-5 and 7, opcodes 1-0xB, idiv clobbering register 0), version-gated pyc field widths and the pre-3.8 flag remap, the extra-section TLV (fn_count/descriptor_count, (byte>>6)+2 item length, big-endian consts index), per-code-object decryption including copy_prologue and 0x09 fill, and per-string tag rules. Every offset is version-specific; the file's own claim strength says so. Static route only: no runtime, device or root, and no recovered module was executed here."
     },
     {
       "capability": "native-so-remote-debugger-attach",

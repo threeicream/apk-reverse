@@ -166,12 +166,31 @@ its own strength note at the top.
   for browser targets and never run on an Android long-connection app here — `unverified`
   end to end, with Android capture points `inferred` from documented APIs
   (`protocol-reverse.md` §6).
-- **Unity logic recovery (Mono and IL2CPP)** — telling the backends apart by what they ship,
-  dumping `libil2cpp.so` + `global-metadata.dat` with Il2CppDumper, the metadata magic that decides
-  whether the dump is even possible, the four-step IDA import order, a run-time class/method lookup
-  over frida-il2cpp-bridge, and the dnSpy-Unity-mono patch that makes a retail Mono player accept a
-  debugger. Absorbed from three public write-ups; no package was dumped here and no patched runtime
-  was built, so every step is `unverified` (`unity-runtime.md`).
+- **Unity logic recovery (Mono and readable IL2CPP)** — telling the backends apart by what they
+  ship, dumping `libil2cpp.so` + `global-metadata.dat` with Il2CppDumper, the metadata magic that
+  decides whether the dump is even possible, the four-step IDA import order, a run-time class/method
+  lookup over frida-il2cpp-bridge, and the dnSpy-Unity-mono patch that makes a retail Mono player
+  accept a debugger. Absorbed from public write-ups; no package was dumped here and no patched
+  runtime was built, so every step is `unverified` (`unity-runtime.md`).
+- **Protected IL2CPP metadata** — when the pair is absent, 0 bytes, encrypted, embedded or version-
+  inconsistent: anchoring on the consumer's output pointer, the version-independent header-sizing
+  rule, the repeating-key XOR / custom bytecode-VM / XXTEA container shapes, the second-mapping
+  live dump, and the ELF repair that names symbols again. Absorbed from public write-ups and never
+  executed here (`il2cpp-protected-metadata.md`).
+- **Linker-level SO unpacking and `soinfo` repair** — the `dlopen` pipeline as a loader
+  specification, `load_bias` and segment arithmetic including `seg_page_offset`, `DT_*` parsing,
+  relocation targets and the defining-library-versus-caller bias, the minimal `soinfo` repair set,
+  anti-dump header XOR detected by ELF invariants, and the dump window at `LoadSegments`. Source-
+  reading synthesis plus a Frida cookbook; no loader was reimplemented here
+  (`linker-and-soinfo-repair.md`).
+- **VM protector analysis** — envelope triage, VM_DATA/VM_CONTEXT/vEIP/vStack anatomy, data-anchored
+  breakpoints, forged-return recognition, trace-then-search-by-constant, virtual eflags as writable
+  data, NAND lowering and branchless select. Absorbed from x86 VMProtect samples; never executed
+  against an Android target here (`vm-protector-analysis.md`).
+- **Python bytecode / Pyarmor recovery** — the MD5 key schedule, AES-CTR nonce construction, the
+  12-byte nonce-XOR VM, version-gated `pyc` parsing and pre-3.8 flag remap, the extra-section TLV,
+  per-code-object and per-string decryption. Absorbed from one public write-up; no sample was
+  unpacked here (`python-bytecode-recovery.md`).
 - **Attaching IDA's remote debug server to a `.so`** — ABI-matched `dbgsrv`, the root server, the
   wait-for-debugger start plus the JDWP handshake that releases the process, and the
   `extractNativeLibs="false"` failure where the library is mapped from `base.apk` and no breakpoint
@@ -200,12 +219,12 @@ its own strength note at the top.
 
 ## Not covered — say so rather than improvise
 
-- **A *verified* Unity / IL2CPP route.** `unity-runtime.md` carries the documented route —
-  backend identification, Il2CppDumper, the IDA import order, the Frida bridge, the dnSpy-Unity-mono
-  patch — but nothing in it was run in this record, and it is not the IL2CPP equivalent of
-  `dart-aot.md`: there is no byte-level reading of generated native code here, no opcode map, and no
-  measurement on a stripped or protected package. Do not present a dump as proof that a method was
-  located.
+- **A *verified* Unity / IL2CPP route.** `unity-runtime.md` and
+  `il2cpp-protected-metadata.md` carry documented routes — backend identification, Il2CppDumper, the
+  IDA import order, the Frida bridge, consumer-side metadata recovery and ELF repair — but nothing in
+  either was run in this record, and neither is the IL2CPP equivalent of `dart-aot.md`: there is no
+  byte-level reading of generated native code here, no opcode map, and no measurement on a stripped
+  or protected package. Do not present a dump as proof that a method was located.
 - **React Native / Hermes bytecode** and Cordova/hybrid internals, beyond runtime identification and
   the generic "find the string, then find what references it" approach. One carve-out: if the JS
   layer's problem is **VMP-protected JavaScript** (a jsvmp opcode literal plus interpreter), that is

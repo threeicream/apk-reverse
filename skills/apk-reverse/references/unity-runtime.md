@@ -130,6 +130,9 @@ the same rule as `pitfalls.md` P47.
 - **Encrypted metadata** (`xxd` shows the wrong magic): dump at run time with Zygisk-Il2CppDumper, or
   recover the loader's decryption (`packers.md`). A static dumper will never succeed here, and retrying
   with another one is the wrong move.
+  When the file is absent, 0 bytes, embedded, or wrapped in a custom container, `il2cpp-protected-metadata.md`
+  owns the consumer-side dump, the header sizing rule and the container shapes; this file resumes once a
+  parseable pair exists.
 - **Version newer than the dumper**: pin the dumper to the Unity version. A dump from the wrong version
   produces plausible names with wrong struct offsets, so treat every field offset as suspect until one
   is confirmed at run time.
@@ -155,6 +158,30 @@ or one method, with `Il2Cpp.trace(true).methods(cls.method("SetShield")).and().a
 `frida -U -f <pkg> -l frida.js`, and `Il2Cpp.dump()` writes a metadata dump from the live process —
 the usual answer to an encrypted `global-metadata.dat`. Il2CppHookScripts (`il2cpp-hooker`) is a
 scripted alternative with the same dependency.
+
+**Ask the live object graph before rebuilding crypto.** When the question is a decrypted value
+rather than a class's shape, the cheapest route is often to let the app construct it:
+
+```ts
+Il2Cpp.perform(() => {
+    const api = Il2Cpp.domain.assembly("Assembly-CSharp").image.class("Game.APIManager");
+    Il2Cpp.gc.choose(api).forEach(instance => {
+        const cipher = instance.method<Il2Cpp.Object>("get_Crypt").invoke();
+        console.log(cipher.method<Il2Cpp.Object>("get_Key").invoke().toString());
+        console.log(cipher.method<Il2Cpp.Object>("get_IV").invoke().toString());
+    });
+});
+```
+
+`Il2Cpp.gc.choose` enumerates live instances without knowing the allocation site; getters and
+fields then return the object the app actually uses. This is `inferred` from a public write-up and
+not exercised here: the method names and class names are target-specific, and a build that hides
+the il2cpp exports breaks the bridge exactly as in the paragraph above.
+
+`Il2Cpp.dump("name", "/data/data/<pkg>/files")` takes an explicit name and an app-writable
+directory; with no arguments it uses defaults that may not be writable on a hardened build. A dump
+written before the metadata is decrypted is the encrypted file again — check the magic before
+importing it.
 
 The dependency is the boundary: a build that hides or strips the il2cpp exports breaks the bridge, and
 the failure presents as *class not found* — indistinguishable from a wrong class name. Confirm the

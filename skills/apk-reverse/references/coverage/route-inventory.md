@@ -53,6 +53,10 @@ route was not measured on this repository's evidence**. Treat them as leads with
 | Kotlin original-name recovery | obfuscated→original class map from `@DebugMetadata`/`@Metadata` in any jadx export; parsing fixture-tested, recovery rates upstream-claimed — `kotlin-name-recovery.md`, `kotlin_name_recovery.py` |
 | Long-connection (WebSocket) analysis | state chains, message families, envelope/payload split — absorbed methodology, never run on an Android target here — `protocol-reverse.md` |
 | Unity (Mono and IL2CPP) | backend identification, Il2CppDumper over `libil2cpp.so` + `global-metadata.dat`, the IDA import order, a run-time lookup over frida-il2cpp-bridge, the dnSpy-Unity-mono patch — absorbed, nothing run here — `unity-runtime.md` |
+| Protected IL2CPP metadata | when the pair is not readable: consumer-side dump, header sizing without trusting the version, XOR/VM/XXTEA containers, the live-image dump and ELF repair — absorbed, nothing run here — `il2cpp-protected-metadata.md` |
+| Linker-level SO unpacking and repair | the `dlopen` pipeline as a loader spec, load_bias/segment arithmetic, `DT_*` and relocation rules, `soinfo` repair, anti-dump header XOR — source-reading synthesis, no loader reimplemented — `linker-and-soinfo-repair.md` |
+| VM protector analysis | virtual eflags, NAND lowering, branchless select, data-anchored breakpoints and trace search by constant — absorbed from x86 VMProtect samples, never run on Android here — `vm-protector-analysis.md` |
+| Python bytecode / Pyarmor | key schedule, AES-CTR nonce rules, the 12-byte VM, version-gated `pyc` parsing and the extra-section TLV — absorbed, no sample unpacked here — `python-bytecode-recovery.md` |
 | Attaching a real debugger to a `.so` | IDA `dbgsrv` with the ABI match, wait-for-debugger plus the JDWP handshake, and the `extractNativeLibs="false"` failure where no breakpoint binds — `ida-so-debugging.md` |
 | Kernel-side event injection | watchpoints and register rewrites from a driver, as gated templates — `kernel-event-injection.md` |
 | Working from the phone itself | MT Manager edit/repack/sign and its APK MCP, LSPosed Manager, Termux — `on-device-tooling.md` |
@@ -81,7 +85,8 @@ dependency yourself.
 React Native, Hermes bytecode and Cordova internals · iOS of any kind ·
 defeating a server-side authority · an off-the-shelf unpacker · an anti-detection arms race · building
 and shipping a kernel module · a Stalker trace guaranteed on every device · **a measured** Unity /
-IL2CPP route (the documented one is `unity-runtime.md`, and it carries no measurement).
+IL2CPP route (the documented ones are `unity-runtime.md` and `il2cpp-protected-metadata.md`, and neither
+carries a measurement).
 
 Each has a reason and, where one exists, an evidence boundary — in `references/coverage-and-limits.md`.
 **Silence in that record is not support**, and a route that is only "documented" is not a route that

@@ -7,7 +7,7 @@ metadata:
   version: "1.0"
   capability_registry: skills/apk-reverse/scripts/capabilities.py
   evidence_summary: skills/apk-reverse/references/evidence-summary.md
-  last_reconstruction_pass: "2026-09-22"
+  last_reconstruction_pass: "2026-10-24"
   strength_labels: "observed | inferred | unverified | unknown"
 ---
 
@@ -140,9 +140,10 @@ requires a module this skill only scaffolds.
 
 **Not covered — say so rather than improvise:** React Native / Hermes / Cordova · iOS · defeating a
 server-side authority · an off-the-shelf unpacker or an anti-detection arms race · building and
-shipping a kernel module. **Documented but never measured here** — Unity (Mono and IL2CPP) and
+shipping a kernel module. **Documented but never measured here** — Unity (Mono and IL2CPP, including
+protected metadata), linker-level `.so` repair, VM-protector idioms, Python/Pyarmor bytecode, and
 attaching a real debugger to a `.so`: a route, not a result (`unity-runtime.md`,
-`ida-so-debugging.md`). Reasons and evidence boundaries are in `references/coverage-and-limits.md`;
+`il2cpp-protected-metadata.md`, `ida-so-debugging.md`). Reasons and evidence boundaries are in `references/coverage-and-limits.md`;
 **silence in that record is not support.**
 
 **The fallback, as an instruction — this is a rule, not advice.** If the target does not match the
@@ -246,6 +247,11 @@ unread in this repository.
 | A store build arrives as `base.apk` + `split_config.*.apk`, or a rebuilt build is refused **as a set** although every file verifies on its own | `split-apk.md` — one keystore across every member for `pm install-multiple`, and check that a merge is legal before trusting a merged single APK |
 | A debugger lists and attaches to the process, but the target `.so` is absent from the module list and every breakpoint in it refuses or never hits, while its feature works | `ida-so-debugging.md` §the `.so` was never extracted — `android:extractNativeLibs="false"` maps the library from `base.apk`, so there is no `/data/app/<pkg>/lib/<abi>/` file to bind to. Not an anti-debug finding |
 | A Unity package has no `Assembly-CSharp.dll` — only `libil2cpp.so` and `global-metadata.dat` — and every Java-layer hook turns out to be glue | `unity-runtime.md` — that is IL2CPP, the normal shipping configuration, not a stripped build: dump the pair with Il2CppDumper and import `script.json` before `stringliteral.json`, or the database is silently half-named |
+| A Unity IL2CPP package has **no readable `global-metadata.dat`** — 0 bytes, absent, wrong magic, a custom container, or a metadata version that disagrees with its own struct | `il2cpp-protected-metadata.md` — anchor on the consumer's output pointer, size the header without trusting its version, and recognise the XOR/VM/XXTEA shapes; `unity-runtime.md` owns the readable case |
+| You dumped `libil2cpp.so` from memory but the disassembler shows no symbols, or every registration search returns 0 | `il2cpp-protected-metadata.md` §4.1 — `p_offset=p_vaddr`, `p_filesz=p_memsz`, `e_shoff` from the last `PT_LOAD` end, `e_shstrndx`, `sh_offset=sh_addr`; the dump is fine, the ELF metadata is not |
+| A `dlopen`-able `.so` will not load after a custom loader, or a repaired `soinfo` resolves symbols to garbage | `linker-and-soinfo-repair.md` — bias versus base, `seg_page_offset`, the defining library's bias, `APS2` packed relocs, the minimal `soinfo` field set, and the dump window after `LoadSegments` |
+| A native trace has no `cmp`/`sub`/`jcc` — only `and/or/not/shr/neg`, a flags slot, and a `ret` that lands at a VM entry | `vm-protector-analysis.md` — virtual eflags is data, NAND lowering, branchless select, data-anchored breakpoints, and trace-then-search-by-constant; dispatcher slicing stays in `native-vm-recovery.md` |
+| The logic you need is Python bytecode — a `.pyc`/PyInstaller/Pyarmor payload rather than Java, Dart or native | `python-bytecode-recovery.md` — key schedule, AES-CTR nonce rules, the 12-byte VM, version-gated `pyc` parsing and the extra-section TLV; static and offline, then call the recovered module |
 
 ## Gates — clear these before you patch, in order
 
