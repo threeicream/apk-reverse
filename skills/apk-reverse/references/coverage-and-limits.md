@@ -114,7 +114,10 @@ its own strength note at the top.
 - **Instruction-level tracing and de-obfuscation** — the OLLVM shapes, a Stalker trace, the
   trace-to-CFG route, and the measured boundaries in `native-dbi-and-deobfuscation.md`.
 - **Protocol reversing beyond REST** — protobuf without a schema, gRPC frame capture, the QUIC/HTTP3
-  limit, native-side certificate pinning (`protocol-reverse.md`).
+  limit, native-side certificate pinning, and — for an opaque body — classifying the primitive by
+  differential probes (header length, determinism, diffusion width, the length law) before implementing
+  it
+  (`protocol-reverse.md`).
 - **What to do when userspace hooking provably cannot reach the check** — raw `svc` syscalls,
   `init_array`-early detection, and the kernel-route map with its version gate
   (`kernel-and-environment-hardening.md`).
@@ -136,8 +139,9 @@ its own strength note at the top.
   (`scripts/vm_handler_slice.py`).
 - **Native VM recovery procedure** — the full method (dispatcher-layer separation, register
   anchoring with triple verification, nested segment stacks, STORE-backward slicing, clean-re-VM
-  validation) absorbed from two public write-ups; every step `inferred`, none run here
-  (`native-vm-recovery.md`).
+  validation) plus a devirtualization end state that emits a runnable straight-line program with its
+  constant table, output map and template; absorbed from public write-ups, every step `inferred` and
+  none run here (`native-vm-recovery.md`).
 - **JS VMP (jsvmp) recovery** — reading logic protected as a private JS opcode stream: recognition
   signals, the call-it-first route (AST restore + environment fill), stack- and register-machine
   reading procedures, AST instruction extraction with register/immediate typing, the four
@@ -180,8 +184,10 @@ its own strength note at the top.
 - **Linker-level SO unpacking and `soinfo` repair** — the `dlopen` pipeline as a loader
   specification, `load_bias` and segment arithmetic including `seg_page_offset`, `DT_*` parsing,
   relocation targets and the defining-library-versus-caller bias, the minimal `soinfo` repair set,
-  anti-dump header XOR detected by ELF invariants, and the dump window at `LoadSegments`. Source-
-  reading synthesis plus a Frida cookbook; no loader was reimplemented here
+  anti-dump header XOR detected by ELF invariants, the dump window at `LoadSegments`, the narrower
+  window that closes inside `JNI_OnLoad` when self-decryption and watchdog startup share that
+  function, a raw-syscall reader outside a self-hooked libc, and zero-filled unreadable pages.
+  Source-reading synthesis plus two write-ups; no loader was reimplemented here
   (`linker-and-soinfo-repair.md`).
 - **VM protector analysis** — envelope triage, VM_DATA/VM_CONTEXT/vEIP/vStack anatomy, data-anchored
   breakpoints, forged-return recognition, trace-then-search-by-constant, virtual eflags as writable

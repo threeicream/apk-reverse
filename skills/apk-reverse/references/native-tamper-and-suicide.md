@@ -159,6 +159,69 @@ terminate path is the end of the check; nothing downstream re-reads "did I die".
 rather than assuming: after a successful suppression the app must reach its **normal UI and stay
 there**, not loop through half-initialised states.
 
+## Which site — and in what order
+
+Patch sites are not interchangeable. Fixing the wrong one costs a day; fixing them in the wrong order
+costs the same day twice, because you cannot tell which change mattered. Sort the candidates first.
+
+### One predicate may be deciding for all of them
+
+Group the branches you found by the function whose return value they test. When every detector funnels
+into one `is_clean()`-shaped call, rewriting that return is the whole bypass: the kill sites are never
+reached, and the branches you did not enumerate are covered too.
+
+Two conditions, both required:
+
+- the function is a **decision** (returns a verdict), not the **action** (performs the kill). Patching
+  an action changes the response; patching a decision changes the belief. The second is what makes a
+  bypass stable.
+- you have checked its other callers. A predicate that also gates a feature will disable that feature
+  once it always returns clean. Enumerate the callers before you touch it — the xref list in the
+  disassembler, or the same caller enumeration `scripts/find_refs.py` does for dex methods.
+
+(`unverified` that a given target funnels every detector through one predicate — that is the
+source's finding. The decision-versus-action rule is `inferred` from it.)
+
+### Grade the sites by what being wrong costs
+
+| Tier | What it is | How to patch it | Why this order |
+|---|---|---|---|
+| **Tier 0** | terminate primitives: `exit_group`/`tgkill`/`kill` call sites, the shellcode executor, the unified kill point | replace with a no-op or a returning stub | until they stop, every other result is unobservable — the process dies first |
+| **Tier 1** | decision functions: the shared predicate, each scanner (`/proc` walk, `TracerPid` read, module checksum) | return the benign value *for that caller's branch* | they are the belief; a clean verdict also skips the report path |
+| **Tier 2** | auxiliary gates: adb/debug flags, telemetry, feature switches | only if observed to gate the thing you care about | unbounded work; most are inert in your environment |
+
+The benign value is not always 0. Read the caller's branch: a "found something" scanner returns
+non-zero, a "list of hits" scanner returns NULL, a "should continue" predicate returns 1. Returning
+0 everywhere is a guess that happens to work half the time — and the failing half reads as a broken
+patch instead of a wrong constant.
+
+(`inferred`: the order follows from observability — a death at tier 0 hides every other result —
+and the benign-value rule from the caller's branch. The tier vocabulary is the source's,
+`unverified`; no graded set was run here.)
+
+### Count the watchdogs before declaring the set closed
+
+One kill site is rarely the only thread. The threads are distinguishable by what they *read*, not by
+their names:
+
+- a `/proc/self/task`, `/proc/self/fd` or `/proc/self/maps` walk — looking for your instrumentation;
+- `TracerPid`, the parent pid, or a task in state `T` — looking for a debugger or a suspended process;
+- a checksum over a loaded module — looking for a modified page.
+
+Patch one and the app still dies, at a different delay, which reads as "the patch did not work" rather
+than "there were three". After the tier 0/1 set, the process must survive longer than the **longest**
+timer you have observed, not the first one.
+
+(`unverified` for the probe inventory — source-reported for one shell; `inferred` for "identify a
+thread by what it reads", which follows from the probe classes themselves.)
+
+### One tier per run
+
+Patch tier 0, run, record; then tier 1; then tier 2 only if needed. A build with all tiers changed at once cannot
+tell you which one mattered, and the next failure is unattributable. This is the single-variable rule
+of `pitfalls.md` P21 applied to a patch set. (`inferred`.)
+
+
 ## ELF hardening you will meet in these targets
 
 Hardening libraries are not normal ELF files. Assume the following until measured otherwise.

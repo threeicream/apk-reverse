@@ -13,7 +13,8 @@ source-reading write-ups (Android 5.0 and 8.x `bionic/linker`) and one Frida coo
 was reimplemented and no dump was produced here. Source citations are `unverified` against your
 tree until you open the matching AOSP tag. The *arithmetic* (bias, page offset, relocation target)
 is `inferred` from that source and should be checked with one control load before it is trusted.
-The `soinfo` offsets quoted below are explicitly version-specific and are examples, not constants.
+The `soinfo` offsets quoted below are explicitly version-specific and are examples, not constants. The dump-window and reader rules in §6.2–6.3 were added 2026-10 from a write-up
+on a dual-library commercial shell; they are `unverified` operating rules, not measurements.
 
 ## 1. The pipeline, as a specification for a loader
 
@@ -185,6 +186,51 @@ uniform XOR survives every check that looks at one field alone.
 Deleting the header instead of XORing it is a weaker defence but a nastier symptom: the file is
 *cleanly* rejected, so the analyst blames the dump site. If the dump site is right and the header
 is missing, the correct conclusion is "the shell removed it", not "the dump was early".
+
+### 6.2 The window can close inside `JNI_OnLoad`
+
+The dump points above are ordered by *how much of the image exists*. A protector that modifies itself
+adds a second axis: *how long the process lives*. A shell that decrypts its own code in
+`JNI_OnLoad` (SMC) and starts watchdog threads from the same function leaves exactly one interval in
+which both hold — segments mapped, SMC not yet run. Dumping after `dlopen` returns is late twice
+over: the self-decryption has completed, and the watchdog is already armed by the time any
+post-return hook runs.
+
+So: hook `android_dlopen_ext`, and dump in `onEnter` when the target path matches. Treat "the image
+is not relocated yet" as expected, and record the bias and relocation tables in the same pass
+(§2, §4). An unrelocated dump plus its bias is recoverable; an unrelocated dump without one is not.
+
+A dump taken *inside* `JNI_OnLoad` is the worst of both: the code is complete, so the dump looks
+right, and the watchdog is up, so the process dies during the read. **If the target dies while you
+dump and only then, this is the shape — not a broken tool.**
+
+**Claim strength.** The window itself — SMC completing *and* watchdogs starting inside the same
+`JNI_OnLoad` — is `unverified`: one write-up reports it and this record did not reproduce it. The
+placement rule (dump in `onEnter`, keep the bias) is `inferred` from the arithmetic in §2 and §4. The
+symptom is the source's report, also `unverified`.
+
+### 6.3 Read with syscalls, and pad the holes
+
+Two properties of the reader decide whether the dump is usable.
+
+- **The reader must not travel through the library the protector hooks.** A shell that inline-hooks
+  libc's `open`/`read`/`write` sees your dump as one more caller and can refuse or terminate. A
+  raw-syscall reader (`svc #0` from a small stub, or a kernel-side reader) sits outside that
+  surface. This is `advanced-unpacking.md` §"Layered descent" applied to your own tooling: the layer
+  you read from is also the layer the target can watch. (`unverified` for the protector-hook claim;
+  the layer rule it extends is `measured` there.)
+- **An unreadable page is a hole to fill, not a range to skip.** Skipping shifts every later byte
+  and produces a file that repairs into a plausible ELF with missing logic. Zero-filling preserves
+  offsets and sizes, so segment placement still works; record which ranges were unreadable so the
+  repair can be audited. A dump is evidence, and "these ranges were unreadable" belongs in it.
+  (`observed`, host: in a synthetic three-page image with one unreadable page, a marker meant for
+  offset 8199 lands at 8199 when the page is zero-filled and at 4103 when it is skipped — see the
+  EXTENSION record.)
+
+Then repair the image with a tool that rebuilds what the loader would have written (program headers,
+dynamic table, section headers). The repair consumes a file whose *offsets* are right; that is what
+the zero-fill protects. (`inferred`: the offset/size argument above, not a repair run here.)
+
 
 ## 7. Timing: constructors and one-shot registrations
 

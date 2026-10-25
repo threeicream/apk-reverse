@@ -250,7 +250,7 @@
         "docs/tool-verification/EXTENSION-benchmark-l1-l3.md section 3 (repository root, not shipped)",
         "tests/benchmark.md row B2 (repository root, not shipped)"
       ],
-      "limits": "The tooling works; the patch does not. Writes landed 0.04-0.05 s after resume and survived detach, and the patched run and a read-and-write-back control both still died with SIGABRT at the same site: neutralising the terminate routine plus both of its branch inputs was insufficient, and the region is a dense cluster of mov w0,#imm ; ret stubs. Holding the process paused until the patch lands structurally cannot work, because a frozen process has no libraries mapped. On that target the pristine original already reports tamper, so no clean baseline exists there. No surviving-target result is claimed."
+      "limits": "The tooling works; the patch does not. Writes landed 0.04-0.05 s after resume and survived detach, and the patched run and a read-and-write-back control both still died with SIGABRT at the same site: neutralising the terminate routine plus both of its branch inputs was insufficient, and the region is a dense cluster of mov w0,#imm ; ret stubs. Holding the process paused until the patch lands structurally cannot work, because a frozen process has no libraries mapped. On that target the pristine original already reports tamper, so no clean baseline exists there. No surviving-target result is claimed. Site selection is a separate claim: the predicate-first rule and the tiered grading (added 2026-10-25) are absorbed from a write-up and unverified here -- no graded patch set was run, and the ordering judgement is inferred."
     },
     {
       "capability": "native-instruction-tracing-stalker",
@@ -654,7 +654,7 @@
       "evidence_not_shipped": [
         "docs/tool-verification/README.md (repository root, not shipped)"
       ],
-      "limits": "The offline candidate path from an APK and the authoritative live read are both documented in the reference; neither has a public-target measurement here. The failure shape is a rebuilt APK that installs, launches, and then fails every signed request, which is easy to report as a server problem and is not one."
+      "limits": "The offline candidate path from an APK and the authoritative live read are both documented in the reference; neither has a public-target measurement here. The failure shape is a rebuilt APK that installs, launches, and then fails every signed request, which is easy to report as a server problem and is not one. A second variant -- a certificate-derived salt concatenated inside the digest, invisible to any black-box search -- is documented from the same 2026-10-25 write-up and likewise unmeasured."
     },
     {
       "capability": "blocked-react-native-ios",
@@ -981,6 +981,54 @@
         "SimoneAvogadro/android-reverse-engineering-skill (Apache-2.0): recover-kotlin-names.sh and references/kotlin-name-recovery.md -- re-implemented 2026-10-20 as dependency-free Python"
       ],
       "limits": "Parsing of all three recovery sources (@DebugMetadata c=, @Metadata d2 first non-stdlib descriptor, jadx 'renamed from' comments), the third-party skip list and the map-file round trip are observed on embedded fixtures only. The upstream recovery-rate claims (30-50% of classes overall, ~100% of *Repository/*ViewModel/*Impl, ~80% of data-class DTOs) are unverified here: no real obfuscated Kotlin app was run through the script. Method and field names are never recovered; heavily inlined shapes can surface under a wrong primary class, so every mapping row is a hint. The script reads decompiled sources, not the dex: a decompiler that drops annotations removes the source entirely."
+    },
+    {
+      "capability": "native-dump-window-and-syscall-reader",
+      "group": "native",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "unverified",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/linker-and-soinfo-repair.md",
+        "references/advanced-unpacking.md"
+      ],
+      "evidence_not_shipped": [
+        "ref/vm1.md (repository root, git-ignored, not shipped): 2026-10-25 write-up on a dual-library commercial shell"
+      ],
+      "limits": "Operating rules only, absorbed 2026-10-25 and never exercised here: the dump window that closes inside JNI_OnLoad when self-decryption and watchdog startup share that function, the raw-syscall reader that stays outside a self-hooked libc, and zero-filling unreadable pages so segment offsets survive repair. The zero-fill/offset consequence is observed on a synthetic three-page image (marker at 8199 zero-filled, 4103 skipped); the window, the reader and the target behaviour are unverified, and the placement rule is inferred from the linker arithmetic."
+    },
+    {
+      "capability": "whitebox-crypto-devirtualization-to-program",
+      "group": "native-dynamic",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "unverified",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/native-vm-recovery.md",
+        "references/vmp-differential-analysis.md"
+      ],
+      "evidence_not_shipped": [
+        "ref/vm2.md (repository root, git-ignored, not shipped): 2026-10-25 write-up on a white-box VM protecting one signing routine"
+      ],
+      "limits": "The route -- symbolic input, constant folding, loop and branch elimination, an (op, args) straight-line program plus its constant table, output map and output template -- is absorbed from one write-up and never run. It applies only to a deterministic, input-driven function: device id, time or nonce inputs become captured constants, and the claim then degrades to reproducing one device. The program is version-bound; no extract was produced here."
+    },
+    {
+      "capability": "cipher-classification-by-differential-probe",
+      "group": "protocol",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "inferred",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/protocol-reverse.md",
+        "references/signature-derived-keys.md"
+      ],
+      "evidence_not_shipped": [
+        "ref/vm3.md (repository root, git-ignored, not shipped): 2026-10-25 write-up on a native signer and an encrypted request body"
+      ],
+      "limits": "Three black-box probes -- header length, output determinism, and one-byte diffusion width, plus the length law -- the involution-wrapper algebra, and Java-versus-Python encoding plus compression drift. Host-checked on AES-128 through openssl and on synthetic inputs: the probes separate CTR, CBC and ECB (1 / all-following / one block changed per flipped byte), the mask identity has zero counterexamples over 65,536 eight-bit pairs and 200,000 random 16-bit pairs, the length law holds for b=16, and zlib levels 1 and 9 emit different valid streams for one payload. The probe this row originally described (prefix XOR implies a stream cipher) was falsified by that run -- CBC and ECB also show zero prefix-XOR at a fixed IV -- and the reference now carries the corrected discriminator. No target body was classified, and no server was tested for whether it compares compressed bytes or only the decompressed payload."
     },
     {
       "capability": "websocket-long-connection-analysis",

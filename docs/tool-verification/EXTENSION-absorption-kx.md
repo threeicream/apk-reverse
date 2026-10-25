@@ -21,7 +21,7 @@ postings; no sample, tool output or target fact from them entered the repository
 | W1: full arm64 custom-VM recovery (long-form) | 0x00–0x1A method narrative | `references/native-vm-recovery.md` (existence signals, dispatcher separation, partial deflattening, relocation tables, PC proofs, descriptor/ISA cautions, clean-re-VM loop) |
 | W2: VMP interpreter recovery with trace-driven IR lifting | anchor/trace/lifting narrative | `references/native-vm-recovery.md` (register anchoring + triple verification, nested segment stacks, STORE-backward slicing, byte provenance, IR shape), `vm_handler_slice.py` nested-loop diagnostic |
 | W3: login-capture war story (packed + MADP/Weex + gomobile) | route-by-route复盘 | `references/pitfalls.md` P43–P46; the stack-ABI note in `references/hardware-watchpoints.md` |
-| W4: manual OLLVM deflattening | predicate algebra + IDA scripting | cross-checked against existing content; its MOV/MOVK constant-propagation state mapping is referenced as the static counterpart in `native-vm-recovery.md` §11 — no new file |
+| W4: manual OLLVM deflattening | predicate algebra + IDA scripting | cross-checked against existing content; its MOV/MOVK constant-propagation state mapping is referenced as the static counterpart in `native-vm-recovery.md` §12 — no new file |
 
 ## 2. The one code change, and why — observed
 
@@ -54,7 +54,7 @@ spin-loop note on the real code path. Both regressions are now pinned by tests.
   plaintext boundary; a RegisterNative inventory is one run for a full method table).
 - W4's full IDA script: the technique is named (state-register MOV/MOVK constant propagation,
   CMP-site collection, predecessor walk past blocks with no CMP on the state register) and
-  pointed at from `native-vm-recovery.md` §11; writing an IDA-independent implementation is a
+  pointed at from `native-vm-recovery.md` §12; writing an IDA-independent implementation is a
   future pass, not an absorbed claim.
 - Every sample identity in all four sources: anonymized by the authors, kept anonymized here;
   `.ref/` (the local copies) is untracked and git-ignored in effect (never added).

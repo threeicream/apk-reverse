@@ -1471,3 +1471,53 @@ signature consequences — `signature-derived-keys.md`), or by giving the loader
 `.so` extracted from the APK and call it the module: those addresses belong to a copy the process
 never mapped, so a breakpoint that does land is worse than one that does not. The full attach sequence
 is in `ida-so-debugging.md`.
+
+## P49. A reimplemented signer is byte-wrong, and the defect is in the extraction
+
+**Symptom**
+A reproduced signer emits a signature of the right shape and length and the server rejects it. Every
+intermediate value looks sane; the difference is at the tail. The working hypothesis becomes "there is
+a final MAC", then "a truncated hash", then "a per-version tweak", and each one gets its own day.
+
+**Root cause**
+The input to the pipeline is not byte-identical to the device's. The dump read two bytes past the real
+buffer, or a length field in the container lies, or the buffer was copied at an unaligned offset. One
+wrong byte early makes every later stage wrong, and the result still has the right shape.
+
+**Why it is hard to see**
+A wrong algorithm and a wrong input produce the same class of output: plausible, wrong, deterministic.
+Byte-level total failure fits every hypothesis, so there is unlimited room for confirmation bias. And
+the defect lives in memory, where you cannot diff it the way you diff two files.
+
+**The rule**
+**Prove each stage's input is byte-identical — length, alignment, encoding — before touching the
+algorithm.** Compare stage inputs against the device, not final outputs; a stage-input diff localises
+in minutes what an output diff cannot localise at all. P42 is the decoder-desync cousin; this one is
+an extraction length. (`inferred` — a reasoning rule from how one byte propagates; no target case was
+measured for this record.)
+
+## P50. A "custom cipher" is a wrapper that cancels
+
+**Symptom**
+Reimplementing an odd transform produces output that is either double-transformed or exactly what the
+standard primitive would have produced — the transform appears to do nothing, which reads as a missing
+step rather than an extra one.
+
+**Root cause**
+An involution applied symmetrically. `(x & ~m) | (~x & m)` is `x ^ m` for a mask whose bits partition
+the word; called on both the encrypt and the decrypt path, it cancels. A fixed keyless permutation is
+the other member of the family: an encoding dressed as encryption.
+
+**Why it is hard to see**
+The function name and the bit arithmetic read as custom crypto, and the wrapper sits between you and
+the primitive, so reading either alone misleads. A no-op transform is not something you expect to find
+*inside* a protected algorithm, so it gets modelled as key mixing and carried through every later
+step.
+
+**The rule**
+**Compose it with itself before reimplementing it** (`f(f(x)) == x`), and check whether the caller
+invokes it on both paths. If it cancels, drop it and recover the standard primitive underneath; keep
+the wrapper in the report, because it is the reason the algorithm looked unfamiliar. The method, with
+the differential probes that identify the primitive underneath, is `protocol-reverse.md` §7; the
+mask identity itself is host-checked there (`observed`: zero counterexamples over 65,536 eight-bit
+pairs and 200,000 random 16-bit pairs).
