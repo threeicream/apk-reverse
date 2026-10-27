@@ -12,7 +12,9 @@ all.
 sample was unpacked in this record. The general rules (static-first, self-describing TLV,
 mirror-the-host-codegen) are `inferred` from that source. Version numbers matter: every branch
 below is gated on the `pycdc`/Python version, and applying a newer layout to an older file fails
-silently rather than loudly.
+silently rather than loudly. The three-scope nonce layering (§2.2) and the counter-mode correction
+in §5 were added in the 2026-10 audit pass; the counter behaviour is `observed` on the host, the
+layering itself is `unverified`.
 
 ## 1. Recognition
 
@@ -65,9 +67,39 @@ The `idiv` side effect is the general lesson: when reimplementing a packer's VM,
 code generation*, including register clobbers the author did not intend. A clean abstract
 interpreter will produce a different key and every downstream field will decrypt to noise.
 
+Width is part of the same contract: the VM is a transcription of machine instructions, so each
+operation must be evaluated at the host register width — a multiply keeps only the low 32 bits,
+division is signed and truncates toward zero, and results wrap. Evaluating the same program with
+Python's unbounded integers diverges after a few instructions and produces a key that is wrong in a
+way that looks like a wrong nonce downstream, not like an arithmetic error.
+
+### 2.2 The shipped blob is wrapped once more
+
+The `.pyc` is the *inner* artefact. At least one build ships
+`AES-CTR(master key, AST_nonce, pyc-with-encrypted-parts)`: the file on disk is not a pyc, its first
+four bytes are not the marshal magic, and a parser pointed at it reports a corrupt header rather than
+an encrypted file. Three scopes share one master key and are separated only by which nonce is used:
+
+| Scope | Nonce | Plaintext it yields |
+|---|---|---|
+| outer container, whole file | `AST_nonce` from `RSA_KEY2`, `nonce[15] = 2` | the pyc: header, string blob, code section |
+| each code object | 12 bytes sliced out of that object's own `m_code` (§5) | that object's bytecode |
+| each string | `pyarmor_mix_str_aes_nonce` | that one literal |
+
+The order is not a preference. Applying a code object's nonce to the on-disk bytes decrypts layer 1's
+ciphertext with layer 2's stream and yields high-entropy bytes that look like a private opcode set, so
+the failure is "this packer uses a custom ISA", which is the wrong conclusion. Peel the outer layer
+first, then check for the pyc header, then parse (§3).
+
+A live dump does not replace this pass either: the packer decrypts each code object when it is first
+imported, so a process dump holds the objects that ran and leaves everything else as ciphertext. A
+function missing from a dump means "not reached yet", not "not present" — force the modules to import
+before calling a dump complete, and keep the static pass as the only complete route.
+
 ## 3. Parsing the code object
 
-The protected file is a normal `.pyc` with extra fields, so the parser must be version-aware.
+**Once the outer layer is off (§2.2)**, the file is a normal `.pyc` with extra fields, so the parser
+must be version-aware.
 Fields that change and the versions that introduced them:
 
 | Field | Width / condition |
@@ -147,9 +179,16 @@ Then:
 6. Replace the descriptor's first 8 bytes with the `"<COAddr>"` placeholder so a later re-run does
    not treat runtime data as a key.
 
-The nonce construction is the part that is easy to get wrong: `nonce[15] = 2` is a domain
-separator, and using an all-zero tail produces a stream that decrypts the first block plausibly and
-then diverges.
+The nonce construction is the part that is easy to get wrong, and the usual description of *how* it
+fails is wrong: `nonce[15] = 2` is not a flag that only affects later blocks. In counter mode every
+block's keystream is `E(nonce || counter)`, so changing byte 15 changes the counter start and corrupts
+**block 0 onward** — there is no "first block decrypts plausibly" state to catch you. (`observed`,
+host: two 16-byte counter blocks differing only in byte 15 differ in 16 of 16 keystream bytes, so
+the ciphertext differs from block 0 — see the EXTENSION record and
+`docs/tool-verification/fixtures/verify_ref_claims_10c.py`.) What an *unset* tail does is worse in a different way: the leftover bytes
+are whatever the buffer held, so the keystream is not reproducible at all and the same input decrypts
+differently on two runs. Zero the buffer, set the byte, and check the first eight bytes of the result
+against a known code-object prologue instead of trusting a plausible-looking body.
 
 ## 6. Decrypting strings
 

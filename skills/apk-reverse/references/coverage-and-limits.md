@@ -142,6 +142,19 @@ its own strength note at the top.
   validation) plus a devirtualization end state that emits a runnable straight-line program with its
   constant table, output map and template; absorbed from public write-ups, every step `inferred` and
   none run here (`native-vm-recovery.md`).
+- **A VM written in the managed layer** — IL2CPP builds whose interpreter is C#: the `dump.cs` shape
+  (opcode array + cursor + `Dictionary<int, delegate>`), the opcode→handler map read out of the
+  constructor, and array literals materialised by `RuntimeHelpers::InitializeArray` rather than stored
+  in `.rodata`; identified only, no managed VM was recovered here (`unity-runtime.md`,
+  `native-vm-recovery.md`).
+- **Comparison gates as prefix oracles** — instrument the comparator's own counter, grow the prefix one
+  position at a time, and decide from the fail-path cost whether the oracle is open (early exit) or
+  closed (digest / fixed-width / constant-time). The cost separation is host-measured on synthetic
+  compares; no real gate was attacked, and a remote check is a different, rate-limited experiment
+  (`account-gates.md`).
+- **Pyarmor builds that wrap the whole file** — three nonce scopes (outer container, per code object,
+  per string) sharing one master key, and why a live dump is structurally incomplete; the
+  counter-mode half is host-measured, the layering itself is absorbed (`python-bytecode-recovery.md`).
 - **JS VMP (jsvmp) recovery** — reading logic protected as a private JS opcode stream: recognition
   signals, the call-it-first route (AST restore + environment fill), stack- and register-machine
   reading procedures, AST instruction extraction with register/immediate typing, the four

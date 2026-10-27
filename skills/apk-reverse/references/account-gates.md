@@ -83,6 +83,42 @@ Watch for a **"skip"/"later" path the app already has**, and for **which actions
 gates**. Binding is often required for a subset (password change, deletion, payment) while the rest of
 the app is unaffected; releasing it globally changes what the app believes about account safety.
 
+## Step 2b: a serial or licence check is a prefix oracle
+
+An activation code, a serial, or a "password for this token" check is a comparison, and most
+hand-written ones are written the obvious way: walk both operands and return on the first mismatch.
+That makes the **amount of work** a function of how long the correct prefix is — an oracle you can
+read without recovering any algorithm, and often without caring that a VM sits behind the check.
+
+Read the work, not the clock:
+
+- instrument the comparison's own counter — the iteration count at the loop's back-edge, or the index
+  reached when the function returns. That number is deterministic. Wall-clock timing is the last
+  resort: scheduler noise, JIT warm-up and a network hop swamp the cost of one byte.
+- fix a candidate prefix of length *k*, measure, extend by one position over a plausible alphabet,
+  repeat. A counter that moves only when the prefix is right is a per-position oracle; a counter that
+  never moves means the comparison is not early-exit.
+- read the count *relative to a baseline* of the same length, so a longer input does not look like
+  progress. (`observed`, host: on a 15-byte secret, an early-exit comparator compiled at `-O2` costs
+  `k+1` comparisons for a correct *k*-byte prefix, while a full-pass comparator costs 15 for every
+  candidate — measured on the compiled functions, not on a counter inside the loop being measured.
+  See the EXTENSION record.)
+
+**The mirror rule decides whether the algorithm matters at all.** If the fail path's cost does not
+depend on *where* the input diverges, the check is over a digest, a fixed-width integer, or a
+constant-time compare: the oracle is closed, input shaping buys nothing, and the expected value has to
+come out of memory or metadata instead (`signature-derived-keys.md` for the case where it is built
+from the signing certificate). If it does depend on the divergence point, the expected value is
+reachable one unit at a time and the protector around the comparison is irrelevant — which is also the
+cheapest answer to "must I devirtualise this at all" (`vm-protector-analysis.md`).
+
+Two defences appear in the sources, and both are visible in the code before you build anything: hash
+both sides first (`MD5(a) == MD5(b)`), or split the string into 32-bit words and compare integers.
+
+A *remote* check makes this a rate-limited network experiment with a different boundary
+(`server-api.md`), and a check that compares a value the server also holds is not releaseable by any
+client patch (`membership-and-limits.md`). Keep the oracle work on a local gate.
+
 ## Step 3: what NOT to do
 
 These are the tempting moves that produce a worse artifact than doing nothing:

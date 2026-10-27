@@ -26,6 +26,7 @@ the evidence record condensed in `references/evidence-summary.md` §Where the fu
 | Flutter / Dart AOT | analysing and patching `libapp.so` **given a snapshot dump** | `dart-aot.md` |
 | Runtime and server side | Frida analysis, API probing, feature-scoped TLS failures, update/forced-upgrade neutralisation | `dynamic-frida.md`, `server-api.md`, `tls-and-cert.md`, `updates-and-forced-upgrade.md` |
 | Verification discipline | the claim ladder, control builds, capture-and-look, bounded waits | `verification.md`, `long-task-discipline.md` |
+| A comparison gate as an oracle | instrument the comparator's own counter (not the clock), grow the correct prefix one position at a time, and read the fail-path cost to decide whether the oracle is open or the check is over a digest — host-measured on synthetic compares, no real gate attacked | `account-gates.md` |
 
 ## Also covered, by documented routes — mostly *inferred* rather than measured
 
@@ -52,11 +53,11 @@ route was not measured on this repository's evidence**. Treat them as leads with
 | JS AST pre-deobfuscation | family detection + per-family pass order + safe-rewrite rules; detector shipped and fixture-tested, rewriting needs node+babel (not shipped) — `js-ast-deobfuscation.md`, `js_obf_detect.py` |
 | Kotlin original-name recovery | obfuscated→original class map from `@DebugMetadata`/`@Metadata` in any jadx export; parsing fixture-tested, recovery rates upstream-claimed — `kotlin-name-recovery.md`, `kotlin_name_recovery.py` |
 | Long-connection (WebSocket) analysis | state chains, message families, envelope/payload split — absorbed methodology, never run on an Android target here — `protocol-reverse.md` |
-| Unity (Mono and IL2CPP) | backend identification, Il2CppDumper over `libil2cpp.so` + `global-metadata.dat`, the IDA import order, a run-time lookup over frida-il2cpp-bridge, the dnSpy-Unity-mono patch — absorbed, nothing run here — `unity-runtime.md` |
-| Protected IL2CPP metadata | when the pair is not readable: consumer-side dump, header sizing without trusting the version, XOR/VM/XXTEA containers, the live-image dump and ELF repair — absorbed, nothing run here — `il2cpp-protected-metadata.md` |
+| Unity (Mono and IL2CPP) | backend identification, Il2CppDumper over `libil2cpp.so` + `global-metadata.dat`, the IDA import order, a run-time lookup over frida-il2cpp-bridge, the dnSpy-Unity-mono patch, and a VM that lives in the managed layer (opcode array + cursor + `Dictionary<int, delegate>` in `dump.cs`, handler indices from the constructor, array literals via `InitializeArray`) — absorbed, nothing run here — `unity-runtime.md` |
+| Protected IL2CPP metadata | when the pair is not readable: consumer-side dump, header sizing without trusting the version, XOR/VM/XXTEA containers, the live-image dump and ELF repair, and the ELF fingerprint of a rebuilt `libil2cpp` (`JNI_OnLoad` / own `DT_INIT` / `SHT_LOUSER`) — absorbed, nothing run here — `il2cpp-protected-metadata.md` |
 | Linker-level SO unpacking and repair | the `dlopen` pipeline as a loader spec, load_bias/segment arithmetic, `DT_*` and relocation rules, `soinfo` repair, anti-dump header XOR — source-reading synthesis, no loader reimplemented — `linker-and-soinfo-repair.md` |
 | VM protector analysis | virtual eflags, NAND lowering, branchless select, data-anchored breakpoints and trace search by constant — absorbed from x86 VMProtect samples, never run on Android here — `vm-protector-analysis.md` |
-| Python bytecode / Pyarmor | key schedule, AES-CTR nonce rules, the 12-byte VM, version-gated `pyc` parsing and the extra-section TLV — absorbed, no sample unpacked here — `python-bytecode-recovery.md` |
+| Python bytecode / Pyarmor | key schedule, AES-CTR nonce rules, the 12-byte VM, version-gated `pyc` parsing, the extra-section TLV, and the outer container layer with its three nonce scopes — absorbed, no sample unpacked here; the counter-mode nonce behaviour is host-measured — `python-bytecode-recovery.md` |
 | Attaching a real debugger to a `.so` | IDA `dbgsrv` with the ABI match, wait-for-debugger plus the JDWP handshake, and the `extractNativeLibs="false"` failure where no breakpoint binds — `ida-so-debugging.md` |
 | Kernel-side event injection | watchpoints and register rewrites from a driver, as gated templates — `kernel-event-injection.md` |
 | Working from the phone itself | MT Manager edit/repack/sign and its APK MCP, LSPosed Manager, Termux — `on-device-tooling.md` |

@@ -40,6 +40,27 @@ embeds the metadata in the `.so` with the rest of the header intact.
 **A 0-byte metadata file is a positive finding, not a missing file.** It means the build does not
 use the file at all, so a static decryptor has nothing to decrypt. Look for the loader's output.
 
+### 1.1 A rebuilt `libil2cpp` announces itself in the ELF tables
+
+One build's own triage script flags three things before it parses anything: a `JNI_OnLoad` export, a
+`DT_INIT`/`init_array` of the library's own, and an `SHT_LOUSER` section. None of the three is
+something the engine's build path needs, so any of them is a candidate added step — read them as
+heuristics, where a false positive costs one `readelf`:
+
+```bash
+readelf -sW libil2cpp.so | grep -i jnionload
+readelf -dW libil2cpp.so | grep -Ei 'INIT|FINI'
+readelf -SW libil2cpp.so | grep -w LOUSER   # a section type, not a name
+```
+
+`JNI_OnLoad` means the library wants a JVM-side entry point, which is a JNI-sinking or loader shape
+rather than something the engine itself calls through. An own `DT_INIT`/`init_array` is the earliest
+place arbitrary code can run. `SHT_LOUSER` is a section the
+linker reserves for the application — a convenient place to park a payload, and a common marker in
+this family. Read these tables **before** hunting ciphertext: the injected entry is where metadata and
+code are decrypted, and it is also what a dumper's "this file may be protected" refusal is reacting to.
+Then continue at §2 and anchor on the consumer rather than the file.
+
 ## 2. Anchor on the consumer, not the path
 
 The reliable address is the pointer *after* decryption and de-obfuscation. Two anchors exist, and
@@ -77,7 +98,10 @@ i -= 8
 ```
 
 This works when magic and version are zeroed, and it survives a version mismatch because it uses
-only offset/count pairs that are still laid out in the same order. Bound the loop (for example
+only offset/count pairs that are still laid out in the same order. (`observed`, host: on a synthetic
+header whose magic and version are zeroed and whose tail counts are zero, the walk returns the true
+length `0x1140` while a fixed mid-header pair returns `0x1098`; see
+`docs/tool-verification/fixtures/verify_ref_claims_10c.py`.) Bound the loop (for example
 `i > 0`), wrap reads in the platform's fault handler on Windows, and treat a non-monotone result as
 "this is not the header you think it is", not as a size.
 
@@ -130,6 +154,16 @@ The generalisable part is not the opcode set; it is that **the VM is a dispatche
 self-describing container**. Dump the program table, name each case by its effect, and replay the
 program in Python. Do not single-step the VM instruction by instruction in a debugger; the table
 is the specification.
+
+**Read the call site before replaying, because the schedule decides what a unit test is.** One build
+runs the interpreter once per fixed-size block — `apply(program, 0x40, table, out + i, min(0x40,
+remaining))` in a loop — with the same constant table re-passed on every call and no state carried
+between them. That makes one block a complete test: decrypt block 0, check the result against the
+plaintext you already know it must contain (a magic, or the first string), and only then run the rest.
+If the call site instead updates a context between iterations, the blocks are chained: no per-block
+shortcut exists, replay must start at 0, and a mismatch at block 7 is a key/program error you cannot
+localise by looking at block 7. The truncated tail is also worth reading explicitly, because a tail
+handled as a full block shifts everything after the last boundary.
 
 ### 3.3 XXTEA with a length word
 
@@ -236,6 +270,16 @@ re-imported metadata is silently corrupt and the dumper still accepts it.
 
 Dump `index,hex` to CSV, decrypt offline, patch the metadata file, then re-run Il2CppDumper. This
 keeps the proof in one place: the tool either parses the patched file or it does not.
+
+**When the literal cipher lives inside the protected VM, do not reverse it — drive the runtime.**
+`String::NewLen(ptr, len)` *is* the decryption oracle, and it takes exactly the two fields the literal
+table stores. Enumerate `i` from 0 to `count-1` yourself, read `(dataOffset + dataIndex, length)`, call
+the runtime entry for each, and collect the returned UTF-16 buffers. Three properties make this better
+than either hooking natural calls or reimplementing the cipher: it is exhaustive rather than a sample
+of what the app happened to load, it is a completeness proof for the table (every index either
+decrypts or visibly fails), and it keeps you out of the VM. The cost is that the process must be
+alive and past metadata init, so it is the wrong route when the question is what a dead sample
+contains.
 
 ## 7. Adjacent artifacts that fail the same way
 

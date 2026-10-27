@@ -6,9 +6,10 @@ it so. `dynamic-frida.md` owns hooking; `hardware-watchpoints.md` owns observati
 attached at all; this file owns the debug-server route and the two preconditions that decide whether
 it works.
 
-**Claim strength.** Absorbed from two public walkthroughs (2024-07, plus a MuMu-emulator note), both
-against CTF apps that were already debuggable, and neither reproduced here. Commands on which the two
-agree are stated plainly; the single-source details are marked *unverified*; anything this file adds
+**Claim strength.** Absorbed from three public walkthroughs (2024-07, plus a MuMu-emulator note and
+a 2026 Unity session), all against CTF apps that were already debuggable, and none reproduced here.
+The debugger-side signal policy in §8 is one source's account, `unverified`. Commands on which the
+sources agree are stated plainly; the single-source details are marked *unverified*; anything this file adds
 as judgement is marked *inferred*.
 
 ## 1. Two manifest facts decide everything
@@ -127,9 +128,31 @@ discipline as `long-task-discipline.md` §single-variable discipline, applied to
 - `am start -D` is visible to the platform and puts the process in a debuggable state that the app can
   query, so "the app behaves differently only while I debug it" is a real observation, not a mistake.
 
-## 8. Boundary
+## 8. Stops that are the debugger's, not the target's
 
-Both sources are emulator or AVD walkthroughs on CTF apps with `debuggable` already set; neither
+Most "the target crashed" observations in a debug session are properties of the debugger's own
+settings. Three that cost a whole session:
+
+- **A platform signal is not target logic.** A Unity-backed app under IDA repeatedly stops on
+  `SIGPWR`/`SIGXCPU`-class signals it never handles, because the platform raises them and the app
+  ignores them. With the default *suspend on this signal* the pause **is** the crash: the process is
+  stopped somewhere it cannot make progress, the watchdog or runtime aborts, and the abort takes IDA
+  down with it. Set those signals to *pass to application* (report on log or silent). After that the
+  same signal costs a log line instead of a session, and the only thing that changed was your
+  debugger.
+- **One database per activity.** Attaching and detaching from the database you used for static
+  analysis tends to hang on exit or leave it unusable — and the annotations are the expensive part.
+  Copy the database (or keep a separate debug-only one) and leave the static one read-only.
+- **Interacting with a paused process is input injection.** Clicking around the app while it is
+  stopped delivers real input into the frozen process and reproduces the same hang/crash class.
+  Resume, then interact; do not "help" a suspended app.
+
+Nothing here is about anti-debug: if the process dies while it is *stopped*, suspect the debugger's
+signal policy before suspecting the target.
+
+## 9. Boundary
+
+All three sources are emulator or AVD walkthroughs on CTF apps with `debuggable` already set; none
 exercised a hardened target, and this record did not run the route at all. `unverified`: the exact
 `dbgsrv` filenames per IDA release, the `chmod` mode, the debugger menu labels across 7.x and 8.x, and
 whether an on-disk `.so` outranks the in-APK copy on a hardened build. What would make the route

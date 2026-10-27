@@ -5,7 +5,10 @@ xvmp-class IR virtualizer, or any private-bytecode loop — and the question is 
 the handler soup to the guest program. This file owns the recovery procedure; the **capture**
 half lives in `references/ete-diff-tracing.md`, the **slicing** tool in
 `scripts/vm_handler_slice.py`, and the OLLVM-only case in
-`references/native-dbi-and-deobfuscation.md`.
+`references/native-dbi-and-deobfuscation.md`. If the interpreter is itself written in a managed
+language — a C# class holding an opcode array plus a cursor under IL2CPP, or a JS dispatch loop — this
+is the wrong file: `unity-runtime.md` §when the managed layer is itself the interpreter, and
+`jsvmp-recovery.md`, own those shapes.
 
 **Claim strength.** Every method step here is absorbed from two public reverse-engineering
 write-ups (Kanxue, 2026-08/09, titles and authors anonymized in this record; one is a full

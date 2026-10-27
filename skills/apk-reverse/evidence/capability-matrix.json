@@ -1044,6 +1044,40 @@
         "715494637/reverse-skill (no license file): jsr-reverse/references/protocol-and-long-connection.md -- methodology only absorbed 2026-10-20, no text copied"
       ],
       "limits": "The state-chain method (capture handshake, first business frame, heartbeat/ack, renewal, error; record the connection as a dependency chain; separate message families; split envelope from payload before body semantics) is absorbed from a browser-WebSocket reference and was never run on an Android long-connection target here. The Android capture points in the section (OkHttp WebSocket listener surfacing, native/QUIC transports never transiting Java) are inferred from documented APIs, not measured. Frame bodies that are protobuf do inherit the measured schema-free decoder from protocol-reverse.md section 1; that is the only measured part of the route."
+    },
+    {
+      "capability": "il2cpp-managed-layer-bytecode-vm",
+      "group": "runtime",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "unverified",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/unity-runtime.md",
+        "references/native-vm-recovery.md",
+        "references/vmp-differential-analysis.md"
+      ],
+      "evidence_not_shipped": [
+        "ref/unity12.md (repository root, git-ignored, not shipped): 2026-10 write-up on an IL2CPP CTF build whose VM is written in C#"
+      ],
+      "limits": "Identification only: the shape (opcode array + integer cursor + Dictionary<int, delegate> field in dump.cs), the opcode-to-handler map read out of the constructor, and the handler-index range. Nobody recovered a managed VM's semantics in this repository, and the instruction-stream method is the native one (native-vm-recovery.md section 11) applied to a stream read statically. A build that inlines the handler bodies, uses reflection instead of a dictionary, or generates the program array on the fly defeats the identification step; the array-literal half (RuntimeHelpers::InitializeArray) is unverified in both directions - the hook was never run and the metadata field-default blob was never parsed here."
+    },
+    {
+      "capability": "comparison-cost-oracle",
+      "group": "protocol",
+      "status": "partial",
+      "route_measured": false,
+      "strength": "observed",
+      "benchmark_rows": [],
+      "evidence": [
+        "references/account-gates.md",
+        "references/vm-protector-analysis.md"
+      ],
+      "evidence_not_shipped": [
+        "ref/vmp1.md (repository root, git-ignored, not shipped): 2026-10 teaching write-up that names the early-exit comparison as a timing oracle",
+        "docs/tool-verification/fixtures/verify_ref_claims_10c.py and EXTENSION-ref-absorption-2026-10c.md section Verification pass (repository root, not shipped)"
+      ],
+      "limits": "The measured half is host-side and synthetic: an early-exit byte compare costs k+1 comparisons for a k-byte correct prefix over k=0..8 while an MD5-then-compare costs a constant 16, so the closed and open cases are separable without a target. Nothing was run against a real serial, licence or activation gate. Reading the comparator's counter requires a hook on the comparison itself; wall-clock timing on a device is not the measured form and is expected to be dominated by scheduler and JIT noise. A remote check is a rate-limited network experiment and a value the server also holds is not releaseable client-side, so the route stops at local gates."
     }
   ]
 }

@@ -18,6 +18,7 @@ Signals in the APK:
 | Cordova / Ionic | `assets/www/`, `cordova.js` |
 | Xamarin / .NET | `libmonodroid.so`, `assemblies/` in the APK |
 | Python (Chaquopy / Kivy / BeeWare) | `libpython3.*.so`, `assets/` with `.pyc`/`.pyz`, `pyarmor`/`__pyarmor__` bootstrap → `python-bytecode-recovery.md` |
+| Python compiled away (Nuitka / Cython / `pyd`) | `libpython3.*.so` **or** a bare CPython dependency, no `.pyc`/`.pyz` anywhere, and `PyInit_*` exports in a target `.so` → the bytecode route has no input; the bodies are native (`native-and-so.md`) |
 
 A `classes.dex` that is small relative to the total payload is another strong hint that the real code
 lives elsewhere.

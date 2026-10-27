@@ -140,6 +140,52 @@ the same rule as `pitfalls.md` P47.
   actually loads — a split or stubbed `libil2cpp.so` inside the APK is not necessarily the one mapped
   (`native-and-so.md`).
 
+### When the managed layer is itself the interpreter
+
+IL2CPP is ahead-of-time compiled, which makes it tempting to read `libil2cpp.so` as the only code that
+matters. A `.so` that looks like a thin wrapper over `Dictionary` and delegate calls is often sitting
+on top of an interpreter written in C# — and a VM written in C# is recoverable from `dump.cs` without
+ever reading an opcode handler in assembly. The shape in `dump.cs`:
+
+```text
+class <obf> {
+    int[]                  aa1;   // the guest program, built from a literal
+    int                    aa5;   // the cursor, i.e. the PC / vEIP
+    Dictionary<int, Action> aa8;  // opcode -> handler
+}
+```
+
+A `while` loop that reads `array[cursor]` and calls `dict[op]` is the dispatcher; the array initialised
+from a literal and the dictionary filled in the constructor are the program and the handler table. The
+handler *indices* are assigned in the constructor by walking an enum or a `static_fields` block (one
+sample enumerated 1..22 and used those values as dictionary keys), so the opcode→handler map is a
+property of the constructor, not something to discover by tracing. Read the constructor first, rename
+the fields positionally to `a1..aN`, delete the null and length guards, and the dispatch loop becomes
+plain control flow. If the program array is built at run time, hook the constructor and take its
+argument instead of tracing the loop.
+
+The recovery method does not change once you have the instruction stream — `vmp-differential-analysis.md`
+for the opcode map and `native-vm-recovery.md` §11 for the artefact set. What changes is the cost: a
+managed VM is read statically, in a decompiler that still has names.
+
+### Array literals are not in `.rodata`
+
+A static array literal — a crypto key, an S-box, a constant table — has **no inline initialiser in
+`libil2cpp.so`**. IL2CPP stores the field's default value in the metadata and materialises it at class
+init by calling `RuntimeHelpers::InitializeArray` (the managed-side name; the implementation copies
+from the field-default blob). Consequences for both reading and searching:
+
+- `grep`-ing the `.so`, or `strings`-`ing` it, cannot find the table, and its absence is not evidence
+  that the table is derived at run time.
+- Hook `InitializeArray` (or break on it) and the argument is the table; the same bytes are also
+  readable from the metadata field-default blob without a device.
+- The table is per-field, so one hook gives you every literal the class initialisation touches, which
+  is usually the whole key schedule of a hand-rolled cipher.
+
+This is the cheapest way to answer "where does this constant come from" in a Unity target, and it is
+cheaper than reconstructing the cipher. `unverified`: the API name is stable across Unity versions, the
+argument shape is not.
+
 ## 5. Driving IL2CPP at run time: frida-il2cpp-bridge
 
 When the dump is encrypted or the question is behavioural, the bridge resolves classes by name at run
@@ -182,6 +228,23 @@ the il2cpp exports breaks the bridge exactly as in the paragraph above.
 directory; with no arguments it uses defaults that may not be writable on a hardened build. A dump
 written before the metadata is decrypted is the encrypted file again — check the magic before
 importing it.
+
+**Hook the framework primitive, not the app's wrapper.** Obfuscation renames the app's classes; it
+does not rename `System.Security.Cryptography.*`, `javax.crypto.Cipher` or `java.security.*`. So when
+the question is "what key does this use", trace the primitive instead of the wrapper the app built:
+
+```ts
+Il2Cpp.trace(true).classes(Il2Cpp.domain.assembly("System.Security.Cryptography")
+    .image.class("System.Security.Cryptography.AesCryptoServiceProvider")).and().attach();
+```
+
+One such trace reports every key/IV pair the process constructs, no matter which wrapper or
+obfuscated call chain produced it, and it removes the need to reconstruct the derivation. On the Java
+side the equivalent pair is a hook on `Cipher.getInstance` plus `SecretKeySpec` / `IvParameterSpec`.
+The trade is provenance: the primitive tells you the value, not which call site asked for it — use the
+app's own class (above) when you need the call site, and the primitive when the derivation is hostile
+and you only need the material. `unverified` here: neither trace was run in this record.
+
 
 The dependency is the boundary: a build that hides or strips the il2cpp exports breaks the bridge, and
 the failure presents as *class not found* — indistinguishable from a wrong class name. Confirm the
