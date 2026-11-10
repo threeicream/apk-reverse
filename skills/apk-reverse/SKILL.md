@@ -252,6 +252,8 @@ unread in this repository.
 | A `dlopen`-able `.so` will not load after a custom loader, or a repaired `soinfo` resolves symbols to garbage | `linker-and-soinfo-repair.md` — bias versus base, `seg_page_offset`, the defining library's bias, `APS2` packed relocs, the minimal `soinfo` field set, and the dump window after `LoadSegments` |
 | A native trace has no `cmp`/`sub`/`jcc` — only `and/or/not/shr/neg`, a flags slot, and a `ret` that lands at a VM entry | `vm-protector-analysis.md` — virtual eflags is data, NAND lowering, branchless select, data-anchored breakpoints, and trace-then-search-by-constant; dispatcher slicing stays in `native-vm-recovery.md` |
 | The logic you need is Python bytecode — a `.pyc`/PyInstaller/Pyarmor payload rather than Java, Dart or native | `python-bytecode-recovery.md` — key schedule, AES-CTR nonce rules, the 12-byte VM, version-gated `pyc` parsing and the extra-section TLV; static and offline, then call the recovered module |
+| A Lua decompiler rejects every script with **`non-standard lua format: <n>`** | `unity-lua-and-assetbundles.md` §2 — a changed Lua 5.1 header byte, not encryption |
+| A re-signed Unity/Mono build exits cleanly with code 4 about two seconds in, with no Java exception | `unity-lua-and-assetbundles.md` §5 — a publisher shell owns the process |
 
 ## Gates — clear these before you patch, in order
 

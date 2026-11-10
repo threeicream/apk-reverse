@@ -120,6 +120,12 @@ references/               按需加载，每个文件一个主题
                               用 Il2CppDumper 导出这一对文件、按能成功的顺序把表导入 IDA、
                               让零售 Mono 播放器接受调试器的 dnSpy-Unity-mono 补丁、
                               基于 frida-il2cpp-bridge 的运行时类查找，以及交付物是报告时的审计探针
+  unity-lua-and-assetbundles.md
+                              既不是纯 Mono 也不是 IL2CPP 的 Unity：逻辑在 Lua bundle 里
+                              （xLua/tolua/SLua）、Lua 5.1 头字节篡改、游戏真正读取的 manifest
+                              CRC、局部加密窗口、UnityFS 重建陷阱（布局丢失、依赖被剥后返回
+                              null、压缩大小等于原始大小）、TextAsset 读回，以及发行方壳后面的
+                              半加密 Mono 程序集
   il2cpp-protected-metadata.md
                               当这一对不可读时：缺失、0 字节、加密或内嵌的 metadata、
                               从消费端 dump、不信任版本号的 header 定长、XOR/VM/XXTEA

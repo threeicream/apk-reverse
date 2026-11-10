@@ -206,6 +206,33 @@ Always pass the explicit range (Route B above) and read the scheme list from tha
 
 Useful detail: keeping the same keystore across builds lets you iterate with `-r` and **preserve a logged-in session**, which matters a lot when the feature you are testing needs auth.
 
+### Renaming the package so two builds coexist
+
+Same package name plus a different signature is an install refusal, and uninstalling the official app
+destroys its data. To install alongside it, rename the package in three places — a manifest-only edit
+produces an APK that installs and then fails to find its own resources:
+
+1. **Binary `AndroidManifest.xml`.** Rebuild the UTF-16 string pool and replace the package name and
+   **every string that carries its prefix** (permissions, provider authorities, the file provider, the
+   push `C2D_MESSAGE` permission, and similar). Enumerate the suffixes from a table rather than
+   guessing; update the chunk sizes and the file size; assert that no occurrence of the old name
+   remains. Do not rename Java class names.
+2. **The `resources.arsc` package block.** Its name is a fixed 128-UTF-16-character field. Miss it
+   and the build installs but resource resolution fails at start — the same symptom as a missing
+   resource, far from the cause.
+3. **The launcher label**, in the arsc UTF-8 string pool. This can be replaced in place only when the
+   new label is not longer than the old one.
+
+Then grep Java/smali for quoted package-name literals and change build scripts to read the name from
+one variable instead of hardcoding it. The app's data directory becomes
+`Android/data/<new-package>/`, so old saves are not carried over — say so in the install notes.
+
+Verify with `aapt dump badging` (package and label), then install both builds on one device: the new
+one must reach its main screen and read/write a save while the official one remains installed. The
+source's LayaAir/Conch case also had to change the arsc package name (Android 9+ compares it when
+resolving resources); hardcoded private-directory paths used a build-time placeholder, and the local
+licence value derived from `ANDROID_ID` did not change with the package name, while saves did.
+
 ### Vendor install interception (OEM shells)
 
 Some ROMs route `adb install` through their own "security centre", which can return

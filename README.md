@@ -200,6 +200,13 @@ references/               loaded on demand, one topic each
                               dnSpy-Unity-mono patch that makes a retail Mono player accept a
                               debugger, a run-time class lookup over frida-il2cpp-bridge, and
                               the audit probes when the deliverable is a report
+  unity-lua-and-assetbundles.md
+                              the Unity that is neither plain Mono nor IL2CPP: Lua logic in a
+                              bundle (xLua/tolua/SLua), the Lua 5.1 header-byte tamper, bundle
+                              CRC in the manifest the game actually reads, partial-encryption
+                              windows, UnityFS rebuild traps (layout loss, stripped dependency
+                              null, compressed == raw), TextAsset read-back, and half-encrypted
+                              Mono assemblies behind a publisher shell
   il2cpp-protected-metadata.md
                               when that pair is not readable: absent, 0-byte, encrypted or
                               embedded metadata, the consumer-side dump, version-independent

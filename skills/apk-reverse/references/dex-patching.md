@@ -180,6 +180,32 @@ Patch spec format for `patch_smali.py`:
 ]
 ```
 
+### Deleting calls instead of rewriting the method
+
+For a large lifecycle method (`onCreate`, an Application initialiser, a main-screen controller), do
+not hand-write the whole body in smali. The source's native case tried that and produced two failure
+classes: `VerifyError` from a `invoke-static/range` whose argument registers were placed at the
+wrong end of the range, and a missing repository initialiser that surfaced later as
+`lateinit property ... has not been initialized`.
+
+The safer shape:
+
+1. **Keep the original method body.** Remove `.line` directives only for the purpose of matching.
+2. **Delete the specific calls** (network, analytics, push, billing, account) with multi-line anchors,
+   and assert each anchor matches exactly once.
+3. **Delete the instructions that existed only to prepare that call** — the `move-object` and
+   `check-cast` pairs that feed its arguments. Leaving them is harmless only if their registers stay
+   live; removing the call and leaving a half-built argument list is how verification fails.
+4. **Put new logic in a Java class** compiled with `javac` + `d8` into an extra `classesN.dex`;
+   the smali edit becomes one `invoke-static` line. The new class is testable on the host and does not
+   disturb register allocation in the original method.
+5. **Find the real input point, not every consumer.** In the source's case the dead profile supplied
+   "current character" and "language"; changing those two getters to read local settings made the
+   whole default-model and greeting chain work without touching the model loader.
+
+Verify with `dex_classdiff`, install, cold-start, and exercise the exact entry that used the deleted
+call. A build that verifies can still have removed an initialiser that only one screen needs.
+
 ## Finding the call site
 
 Reverse-lookup from a smali tree or a set of disassembled dex:

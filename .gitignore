@@ -38,6 +38,10 @@ tools/
 # resting on "nobody has added them yet".
 .ref/
 
+# A public skill clone read by the 2026-11 game-reserve absorption pass. Same rule: the method
+# and the anonymised record ship, the upstream tree does not.
+game-reserve/
+
 # sandbox installs made while testing `npx skills add .` against this repo
 .claude/
 .agents/

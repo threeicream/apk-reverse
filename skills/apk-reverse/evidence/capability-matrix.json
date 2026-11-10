@@ -1078,6 +1078,39 @@
         "docs/tool-verification/fixtures/verify_ref_claims_10c.py and EXTENSION-ref-absorption-2026-10c.md section Verification pass (repository root, not shipped)"
       ],
       "limits": "The measured half is host-side and synthetic: an early-exit byte compare costs k+1 comparisons for a k-byte correct prefix over k=0..8 while an MD5-then-compare costs a constant 16, so the closed and open cases are separable without a target. Nothing was run against a real serial, licence or activation gate. Reading the comparator's counter requires a hook on the comparison itself; wall-clock timing on a device is not the measured form and is expected to be dominated by scheduler and JIT noise. A remote check is a rate-limited network experiment and a value the server also holds is not releaseable client-side, so the route stops at local gates."
+    },
+    {
+          "capability": "unity-lua-and-assetbundle-recovery",
+          "group": "unpacking",
+          "status": "partial",
+          "route_measured": false,
+          "strength": "unverified",
+          "benchmark_rows": [],
+          "evidence": [
+                "references/unity-lua-and-assetbundles.md",
+                "references/unity-runtime.md",
+                "references/repack-and-sign.md"
+          ],
+          "evidence_not_shipped": [
+                "game-reserve/ (repository root, untracked, not shipped): anonymised Unity + Lua and Unity Mono + SLua case reports; absorbed 2026-11-09"
+          ],
+          "limits": "Absorbed only: locating a Lua container on top of Unity, header-byte repair, loader bytecode-only check, bundle CRC source, UnityFS partial-encryption windowing, UnityFS rebuild traps (layout loss, dependency null, compressed==raw), added/replaced TextAsset read-back, and half-encrypted Mono assemblies behind a publisher shell. No Unity package was decrypted, no bundle rebuilt and no assembly reconstructed here; every route is unverified. It assumes the Lua bytecode opcodes are not shuffled and that the bundle's container format is one UnityPy can parse."
+    },
+    {
+          "capability": "layaair-conch-dcc-recovery",
+          "group": "runtime",
+          "status": "partial",
+          "route_measured": false,
+          "strength": "unverified",
+          "benchmark_rows": [],
+          "evidence": [
+                "references/framework-runtimes.md",
+                "references/recon.md"
+          ],
+          "evidence_not_shipped": [
+                "game-reserve/ (repository root, untracked, not shipped): anonymised LayaAir native + JS case report and DCC notes; absorbed 2026-11-09"
+          ],
+          "limits": "Absorbed only: Conch identification, the path-addressed cache layout, the DCC filetable checksum (8-byte little-endian word XOR plus tail), regenerating the four metadata files from shipped content, and the loader patch plus its startup-delay race. No LayaAir package was reversed here, and the checksum was reverse-engineered by the source against its own package, not measured in this repository."
     }
   ]
 }

@@ -76,8 +76,8 @@ those are called out in the matrix rather than buried here.
 ## Absorption-pass record
 
 A later pass absorbed mechanics from external skill repositories (`reverse-skill`,
-`awesome-game-security`, `android-reverse-engineering-claude-skill`, `MobileRE-Skill`), keeping each
-project's own discipline: only the phase, the checklist and the command pattern cross over, with the
+`awesome-game-security`, `android-reverse-engineering-claude-skill`, `MobileRE-Skill`, `game-reserve`),
+keeping each project's own discipline: only the phase, the checklist and the command pattern cross over, with the
 source URL and the access date recorded, and nothing vendored as a runtime dependency. These files
 live here rather than in the skill because two of them corrected a claim the repository had already
 written down.
@@ -89,6 +89,7 @@ written down.
 | `EXTENSION-detection-pipeline.md` | Naming the check that fires: three arms on a public MASTG target (control alive, probe arm dead in ≈300 ms via `strstr("frida")`, with the `TracerPid=0` versus 4-frida-mappings asymmetry), `svc_scan.py`'s two decoders agreeing on an identical 214-site set, the layered Java-to-svc descent, and the ptrace-free dump boundary on targets whose dex is deflated inside the APK |
 | `EXTENSION-dexsql.md` | The SQL query layer adopted as a **third indexer** beside rasc/droidasc/ddc: identical class-definition sets on four archives (zero differences either way), the string xref agreement and the `=` versus `LIKE` match-semantics trap, `decode` against `ddc disasm` line for line, and the persistent cache measured as **not** a speed switch |
 | `EXTENSION-ref-absorption-2026-10.md` | Sixteen public write-ups in four groups (Unity/IL2CPP metadata protection, linker-level SO packing, VM protector idioms, Pyarmor bytecode), the four reference files they became, the registration surface that changed, and the one cheap experiment that would move each row off `unverified` |
+| `EXTENSION-game-reserve-2026-11.md` | The reverse-engineering half of a public game-preservation skill: Unity + Lua script extraction and the Lua 5.1 header tamper, AssetBundle CRC and UnityFS rebuild traps, half-encrypted Mono assemblies, LayaAir Conch DCC checksums, plus recon/repack/split/dex/packer additions — all absorbed as `unverified`, since no package was rebuilt here |
 
 ## Hardware-layer pass record
 

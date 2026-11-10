@@ -93,6 +93,49 @@ workflow, and how to patch this layer safely.
 - **The metadata can be encrypted while the `.so` is not, or the reverse.** Check each file's magic
   before concluding the dump failed; the two failures have different routes.
 
+## LayaAir native (Conch) specifics
+
+LayaAir's native shell is a recognisable shape: `lib/<abi>/liblayaair.so` plus `libv8*.so`, a
+`assets/scripts/` directory (`index.js`, `apploader.js`, `config.js`), an `assets/config.ini`,
+and a cache tree `assets/cache/https.__<host>_<path>/`. If those are present, the game logic is
+JavaScript and the engine is Conch, not a WebView.
+
+- **Cache file names are content-addressed by path, not by content:** each relative path (leading `/`)
+  is named `'%08x' % crc32(path)`. The same directory holds `allfiles.txt`, `filetable.txt`,
+  `filetable1.txt`, `filetable.bin` and `assetsid.txt`.
+- **The game's logic is usually one plaintext compressed file:** `js/bundle.js`. Before reversing it,
+  fetch `js/bundle.js.map` from the same CDN path if it exists — in the source's project it contained
+  470 TypeScript source files, which is the source, not a reconstruction.
+- **DCC checksums are recomputed by the engine, not trusted from the table.** `filetable.txt` is a
+  `ffeeffee 1` header, the assets id split over two lines, then one `fileid chksum` line per file.
+  The checksum is XOR over 8-byte blocks of little-endian `uint32` words, with the remaining 0–7
+  bytes XORed individually. The source matched 8,940 of 8,943 files. The engine recomputes it from the
+  file's content; a mismatch makes it re-download, so offline it fails with
+  `JsAppCache::loadCachedURL Error, no cache data` or `Load start url error`.
+- **Do not copy the CDN's file table.** The source found its values inconsistent with the file contents
+  (same content, different checksum). Recompute every checksum from the bytes you are shipping and
+  regenerate all four metadata files, then `bundle.js` can be edited freely.
+- **The loader is plain JS and lives outside the cache** (`index.js` under `assets/scripts/`). It calls
+  `updateDcc()`; offline that fails and, if a cached id exists, the app exits with
+  `onLayaInitError`. Patch the loader to skip the update but **re-create the side effect it had**:
+  `cache.setResourceID('appurl', urlpath)`. Then keep a delay of roughly three seconds before
+  starting: in the source, the network update had been hiding a startup race, and an instant start
+  crashed in `JCScriptRuntime::dispatchLayaGLBuffer` on the GL thread (x86 and arm), with or without
+  any offline JS module. Prove it with a control build that contains only the loader patch.
+- **`loadLib()` is asynchronous.** A hook installed before `loadLib('js/bundle.js')` returns sees no
+  `Laya` object; poll until the engine exists, then install the hook.
+- **A local module is loaded by `require("offline_server")`**, which Conch resolves from
+  `assets/scripts/`, the same way the game's own modules load.
+
+**Failure shape to remember:** one uncaught exception in a Laya render callback freezes the game,
+because the main loop is `requestAnimationFrame(loop)` and an exception stops the next frame. The
+symptom is a frozen or black screen while the debug channel still answers; the check is
+`Laya.timer.currFrame` not increasing. Wrapping `Laya.stage._loop` in try/catch is a diagnostic
+guard, not a fix for the underlying null asset. Mocked XHR responses can also poison a pooled
+`HttpRequest` instance — clear the own properties you defined in `open()` or every later request
+on that instance fails instantly. These are engine-side behaviours from the source's case, not
+measured here.
+
 ## Locating logic without symbols
 
 - **Strings first.** User-visible text (dialog bodies, feature labels) is the cheapest anchor in any

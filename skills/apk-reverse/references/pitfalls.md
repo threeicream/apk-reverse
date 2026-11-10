@@ -1521,3 +1521,78 @@ the wrapper in the report, because it is the reason the algorithm looked unfamil
 the differential probes that identify the primitive underneath, is `protocol-reverse.md` §7; the
 mask identity itself is host-checked there (`observed`: zero counterexamples over 65,536 eight-bit
 pairs and 200,000 random 16-bit pairs).
+
+## P51. The low-API branch you need was removed by R8
+
+**Symptom**
+A build with `minSdkVersion 29` is changed to 28 and installed on Android 9. It starts, then dies on
+`No virtual method rebase()`, `registerActivityLifecycleCallbacks`, or `WindowInsets$Builder`; or it
+runs but lifecycle events never arrive, so coroutines inside `lifecycleScope` never execute.
+
+**Root cause**
+R8 evaluated `if (SDK_INT >= 29)` as true for the declared `minSdk` and deleted the else branch. The
+`$ApiNNImpl` fallbacks below 29, the old `WindowInsetsCompat` implementation, and the pre-29 path in
+`ReportFragment.dispatch` (which became an empty function) are no longer in the dex.
+
+**Why it is hard to see**
+The APK installs and starts; only the path that needs the deleted branch fails. The stack names a
+framework or AndroidX class, so the first hypothesis is an SDK/framework mismatch, not "our own build
+deleted this code". The empty lifecycle method is silent: nothing throws, the observable is "the app
+does nothing".
+
+**The rule**
+**Lowering `minSdk` is a code change, not a manifest edit.** Audit every `$ApiNNImpl` with N at or
+above the original minSdk, the lifecycle dispatch, and `WindowInsetsCompat`; add a version guard that
+returns the default on old devices and restore the old implementation. Test on the oldest API you
+claim to support. Prefer a newer emulator over lowering the floor; if you must lower it, treat every
+`SDK_INT` comparison as a branch you may have to re-create.
+
+## P52. A decompiled Lua file does not match its filename
+
+**Symptom**
+A batch decompile produces valid Lua, but many files in different directories contain the same
+unrelated script (the source found 112). The running game is fine, so the "source" is the only thing
+that is wrong. A later variant: a script you replaced is not the script the build patched; constants
+from the hot update disappear, and a runtime stack contains a function name that does not exist
+anywhere in the decompiled source.
+
+**Root cause**
+The bundle writer cloned a template `TextAsset` and wrote new bytes with `save_typetree`; the
+library's `read()` kept parsing the template object's original bytes. The same cache applies after a
+hot-update merge: `set_raw`/replacement writes the new script, but `read()` still returns the packaged
+old one, so a read-modify-write patch operates on the old file and silently overwrites the new one.
+
+**Why it is hard to see**
+Every file is syntactically valid Lua. Nothing in the pipeline reports an error; the only signal is
+semantic — a function that should exist does not, or two entries share identical content. If the
+analysis copy is wrong, the patch is written against a file the device never runs.
+
+**The rule**
+**Compare the entry name with the chunk name before analysing a batch.** Lua 5.1 bytecode stores
+`@UI/...` immediately after the header; zero mismatches is the gate for trusting the export. In your
+own bundle writer, keep a sidecar map of every written payload and make reads return it first, then
+compare the bytes read back with the hot-update source. The quick runtime signal is a stack frame
+naming a function absent from the "source" — that means you are reading the old script.
+
+## P53. A retained AssetBundle returns null after stripping unused bundles
+
+**Symptom**
+You remove bundles that the package does not seem to use. The build installs and starts, but a bundle
+you kept now loads as null or its assets are missing. There is no CRC error and the removed files are
+not mentioned in the log.
+
+**Root cause**
+`AssetBundleManifest` still lists the removed bundle as a dependency of a retained one. Unity resolves
+the dependency graph before loading; a missing edge makes the parent unavailable even though its own
+bytes are intact.
+
+**Why it is hard to see**
+The failure is attributed to the bundle that is still present, or to the patch you just made. The
+removed bundle is absent from the evidence by definition, and "the file exists" looks like proof that a
+bundle should load.
+
+**The rule**
+**When you remove an AssetBundle, rebuild the dependency list in the manifest in the same step.**
+Never treat file presence as loadability. Load each retained bundle in a control build and check for
+null before signing; keep the removed-bundle list in the build record so a later change can rebuild
+the graph.

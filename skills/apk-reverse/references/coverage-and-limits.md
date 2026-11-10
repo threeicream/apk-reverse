@@ -220,7 +220,17 @@ its own strength note at the top.
   (`kernel-event-injection.md`, `scripts/kernel_instrument_scaffold.py`).
 - **Working from the phone itself** — MT Manager, its APK MCP surface, LSPosed Manager, on-device
   data inspection (`on-device-tooling.md`, `scripts/mt_mcp_probe.py`).
-
+- **Unity + Lua and AssetBundle recovery** — finding a Lua container on top of Unity, repairing the
+  Lua 5.1 header byte, checking the loader's bytecode-only flag, reading the CRC manifest the game
+  actually reads, bounding a partial-encryption window, rebuilding a UnityFS bundle without losing
+  its layout or dependency edges, verifying added/replaced TextAsset read-back, and reading
+  half-encrypted Mono assemblies behind a publisher shell. Absorbed from two anonymised case reports;
+  no package was decrypted or bundle rebuilt here, so every step is `unverified`
+  (`unity-lua-and-assetbundles.md`).
+- **LayaAir native (Conch) DCC recovery** — Conch identification, the path-addressed cache, the
+  filetable checksum, regenerating metadata from shipped content, and the loader patch with its
+  startup-delay race. Absorbed from one case report; no LayaAir package was reversed here
+  (`framework-runtimes.md` §LayaAir native (Conch) specifics).
 ## Dependencies this skill does not ship — name them before the workflow starts
 
 - **JS AST rewriting needs node + babel** (`@babel/parser`/`traverse`/`generator`) — the detector

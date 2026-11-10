@@ -115,7 +115,12 @@ built on them has nothing to check itself against.
 - **No real OLLVM trace and no trace pipeline verified on a device.** Exclusion keeps a target alive
   but does not restore event delivery, and a zero-event trace is a boundary to identify rather than a
   recipe to follow.
-
+- **The Unity + Lua / AssetBundle and LayaAir Conch routes were never exercised here.** The Lua
+  header repair, bundle CRC selection, UnityFS partial-encryption windowing, bundle rebuild traps,
+  TextAsset read-back, half-encrypted Mono assemblies and the LayaAir DCC checksum are absorbed from
+  two public case reports; no Unity or LayaAir package was decrypted, rebuilt or installed in this
+  repository. Treat every step in `references/unity-lua-and-assetbundles.md` and
+  `references/framework-runtimes.md` §LayaAir native (Conch) specifics as `unverified`.
 ## Conclusions that changed — an older copy may still state the old one
 
 Each of these was a claim this skill used to make and no longer does. If you are reading a copy or a

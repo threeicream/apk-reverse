@@ -54,6 +54,51 @@ launch screen, popups and tab set are **client decisions** or **server data**,
 which is the difference between a five-minute patch and a dead end. See
 `server-config-and-updates.md`.
 
+## 1c. Resource completeness and the encryption map
+
+Two questions are cheap on day one and expensive after a week of patching: **how much of the game is
+in this APK**, and **what exactly is encrypted**. Answer both before choosing a route.
+
+**Completeness.** A 1.2 GB package can be a quarter of the game. Find the game's own catalogue
+(`manifest.*`, `AssetDatabase.manifest`, a version file, a native manifest) and diff it against the
+files actually present, summed by directory. Then diff the content tables (costumes, characters,
+levels) against entries that have a model or texture. In the source's micro-client case, the manifest
+listed 42,700 bundles / 4.62 GB while the APK held 12,120 / 1.05 GB, and about 91% of the clothing
+models were absent. The rest was downloaded on first launch and died with the server.
+
+A player's app backup is often the only complete source; treat it as untrusted: identify the container
+(headers, compression, encryption), verify every file against the backup's own manifest and MD5, and
+confirm the APK inside is the **same build** — the source found a backup APK with the same version
+name and versionCode but 1,518 differing files. Merge the hot-update layer (scripts, manifests, updated
+bundles) into the package and make it survive the client's first-launch cleanup, or the files are
+deleted before they are read. If the missing resources were never in any player's copy, stop and say so
+rather than patching around a game that cannot be complete.
+
+**Encryption map.** Do not answer "is anything else encrypted?" from memory. Spend half an hour:
+
+1. **Classify every entry** — installed files plus the hot-update directory: size, first 16 bytes,
+   magic type, and entropy over the first 64 KB. The goal is zero "unknown" entries.
+2. **High entropy is not encryption.** Compressed bundles, audio and textures all sit above 7.5.
+   Test whether the standard loader opens the file (a resource bundle that UnityPy loads is not
+   encrypted), whether a public header is present and plausible (e.g. `FSB5`), and whether a sample
+   decodes to a real image or sound.
+3. **Judge text resources one by one** — readable text, a public binary format (skeleton, sound bank,
+   protobuf), or high entropy and a length that is a multiple of the block size (a cipher candidate).
+4. **A fixed prefix is not encryption.** Several zero bytes at the start of every bundle are a common
+   anti-unpacker trick; count them in the original, skip them on read, preserve them on write.
+5. **Check config tables by field**, not by vibe: decode with the protocol description, then scan for
+   field numbers the description does not contain. Zero unknown fields, and a re-serialization of the
+   same byte length, are two independent confirmations.
+6. **Find the second copy.** Packages often contain an old config database while the phone's
+   hot-updated copy is newer. Compare row counts per table and build from the newer one.
+7. **List runtime crypto points separately** — script load, login token, resource check, payment,
+   network packet — and record for each whether the offline route needs it.
+8. **Separate "cannot decrypt" from "not in hand".** A server database or an unreadable private
+   directory is missing data, not an encryption problem; mixing the two produces a false "cracked".
+
+The map is a deliverable: it lets a later reader see which conclusions were measured, which were
+inferred, and which files nobody could open.
+
 ## 2. Is it packed?
 
 Read `AndroidManifest.xml` → `application android:name`.
@@ -129,6 +174,8 @@ Heuristic: the business dex mixes the app's package prefix (hundreds of hits) wi
 | `libflutter.so` + `libapp.so` | **Flutter (Dart AOT)** — dex contains only a thin shell |
 | `libil2cpp.so` + `assets/bin/Data/` | **Unity (IL2CPP)** — native |
 | `libmono*.so` + `assets/bin/Data/Managed/` | **Unity (Mono)** — managed DLLs under `assets/` |
+| `libunity.so` + a `luascript` bundle or thousands of Lua `TextAsset` entries | **Unity + Lua** (xLua / tolua / SLua) — the logic is in a bundle, not the assembly — `unity-lua-and-assetbundles.md` |
+| `liblayaair.so` + `libv8*.so` + `assets/scripts/*.js` | **LayaAir native (Conch)** — JavaScript logic and a DCC cache — `framework-runtimes.md` §LayaAir native (Conch) specifics |
 | `libreactnativejni.so` + `assets/index.android.bundle` | **React Native** — JS bundle under `assets/` |
 | `libhermes.so` | **Hermes bytecode** |
 | Almost everything in `.so` | **Native** — different toolchain entirely |

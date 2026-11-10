@@ -88,6 +88,11 @@ rounds) re-deriving what a cleaner experiment would have shown in one run.
   changes nothing about the shell.
 - **Equal-length renames** keep binary XML chunk structure valid, so no manifest re-encoding is needed:
   replace the name bytes in `AndroidManifest.xml` in place, size unchanged.
+- **A build with Google PairIP is usually the one to leave alone.** Look for `com.pairip` classes and
+  a `LicenseClient` before committing: it combines Play licensing with partial code virtualization and
+  terminates a re-signed process. If the app ships several variants, an older or regional build without
+  PairIP is a better target than an unwinnable one — that is target selection, not defeat. The source's
+  native case chose the older regional split build and accepted fewer cosmetics.
 
 ## Native libraries as a place to live
 

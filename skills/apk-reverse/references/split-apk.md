@@ -221,6 +221,28 @@ the attribute chunks around it, which is what `apktool` is for — and note that
 `apktool b` rebuild rewrites the whole archive
 (`references/repack-and-sign.md` §Repacking an unpacked (de-shelled) app).
 
+### A narrow manual merge through apktool (when bundletool is unavailable)
+
+The rule above is the safe one: do not fold resource tables by hand. There is one exception narrow
+enough to name — a set whose resource splits are **additive** (density or language variants that do not
+redefine an existing name with a different id). The source's native case did this and installed the
+result as a single APK:
+
+1. Install the base as an apktool framework: `apktool if base.apk -p <dir> -t <tag>`.
+2. Decode each split with the same `-p/-t` so its resources keep their **original ids** instead of
+   being renumbered by the decoder.
+3. Copy the split's `res/` files into the base and add their ids to the base's `public.xml`. Skip a
+   name that already exists with the same id; replace `APKTOOL_DUMMY_0x...` names by looking the real
+   name up in the base's id table.
+4. Copy `lib/<abi>/` into the base. In the manifest, remove `requiredSplitTypes`, `splitTypes`,
+   `vending.splits` and `stamp.*`, and set `extractNativeLibs="true"`.
+5. Verify every resource reference resolves and the app renders the split-only content. If two members
+   define the same resource name with different ids, **stop** — that is the folding problem the first
+   rule warns about, and bundletool is the route.
+
+This is a per-set workaround, not a resource merger. Say in the delivery which splits were folded and
+which resource families they carried.
+
 ## 6. Install refusals, and what each one means
 
 | Message | What it actually says | Attribution |
